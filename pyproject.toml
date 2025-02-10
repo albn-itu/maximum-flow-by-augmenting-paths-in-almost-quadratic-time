@@ -1,0 +1,21 @@
+[project]
+name = "maximum-flow-by-augmenting-paths-in-almost-quadratic-time"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "albe2669",email = "albert@risenielsen.dk"},
+    {name = "Adrian Borup", email = "adrian@borup.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "meson>=1.7.0",
+    "numpy>=2.2.2",
+]
+
+[dependency-groups]
+dev = [
+    "basedpyright>=1.27.0",
+    "pytest>=8.3.4",
+    "ruff>=0.9.5",
+]
