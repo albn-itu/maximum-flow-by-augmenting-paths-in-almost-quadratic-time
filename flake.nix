@@ -30,8 +30,10 @@
       uv2nix,
       pyproject-nix,
       pyproject-build-systems,
+      flake-utils,
       ...
     }:
+    flake-utils.lib.eachDefaultSystem (system:
     let
       inherit (nixpkgs) lib;
 
@@ -63,8 +65,7 @@
         # It's using https://pyproject-nix.github.io/pyproject.nix/build.html
       };
 
-      # This example is only using x86_64-linux
-      pkgs = nixpkgs.legacyPackages.x86_64-linux;
+      pkgs = nixpkgs.legacyPackages.${system};
 
       # Use Python 3.12 from nixpkgs
       python = pkgs.python312;
@@ -88,20 +89,20 @@
       # Package a virtual environment as our main application.
       #
       # Enable no optional dependencies for production build.
-      packages.x86_64-linux.default = pythonSet.mkVirtualEnv "hello-world-env" workspace.deps.default;
+      packages.${system}.default = pythonSet.mkVirtualEnv "hello-world-env" workspace.deps.default;
 
       # Make hello runnable with `nix run`
-      apps.x86_64-linux = {
+      apps.${system} = {
         default = {
           type = "app";
-          program = "${self.packages.x86_64-linux.default}/bin/hello";
+          program = "${self.packages.${system}.default}/bin/hello";
         };
       };
 
       # This example provides two different modes of development:
       # - Impurely using uv to manage virtual environments
       # - Pure development using uv2nix to manage virtual environments
-      devShells.x86_64-linux = {
+      devShells = {
         # It is of course perfectly OK to keep using an impure virtualenv workflow and only use uv2nix to build packages.
         # This devShell simply adds Python and undoes the dependency leakage done by Nixpkgs Python infrastructure.
         impure = pkgs.mkShell {
@@ -210,6 +211,6 @@
             '';
           };
       };
-    };
+    });
 }
 
