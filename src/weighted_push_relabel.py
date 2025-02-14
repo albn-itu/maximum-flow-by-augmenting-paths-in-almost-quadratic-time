@@ -40,7 +40,7 @@ class Edge:
 class WeightedPushRelabel:
     # Parameters from paper
     G: Graph
-    c: dict[tuple[Vertex, Vertex], int]
+    c: list[int]
     sources: dict[Vertex, int]
     sinks: dict[Vertex, int]
     w: Callable[[Edge], int]
@@ -149,7 +149,7 @@ class WeightedPushRelabel:
         raise NotImplementedError
 
 
-def weighted_push_relabel(G, c, sources, sinks, w, h):
+def weighted_push_relabel(G: Graph, c: list[int], sources: list[int], sinks: list[int], w: Callable[[Edge], int], h: int):
     """
     G: a graph (V, E)
     c: capacities for each edge
@@ -158,7 +158,9 @@ def weighted_push_relabel(G, c, sources, sinks, w, h):
     w: weight function for edges
     h: height parameter
     """
-    return WeightedPushRelabel(G, c, sources, sinks, w, h).solve()
+    _sources = {v: sources[i] for i, v in enumerate(G.V)}
+    _sinks = {v: sinks[i] for i, v in enumerate(G.V)}
+    return WeightedPushRelabel(G, c, _sources, _sinks, w, h).solve()
 
 
 # Black box for line 13 of Alg. 1 in the paper. Currently runs in inefficient O(n^2) time.
@@ -191,11 +193,11 @@ class AliveSaturatedVerticesWithNoAdmissibleOutEdges:
         raise StopIteration
 
 
-def make_outgoing_incoming(G: Graph, c) -> tuple[dict[int, set[Edge]], dict[int, set[Edge]]]:
+def make_outgoing_incoming(G: Graph, c: list[int]) -> tuple[dict[int, set[Edge]], dict[int, set[Edge]]]:
     incoming = {v: set() for v in G.V}
     outgoing = {u: set() for u in G.V}
-    for i, (u, v) in enumerate(G.E):
-        e = Edge(id=i+1, u=u, v=v, c=c[(u, v)], forward=True)
+    for i, ((u, v), cap) in enumerate(zip(G.E, c)):
+        e = Edge(id=i+1, u=u, v=v, c=cap, forward=True)
         outgoing[e.start()].add(e)
         incoming[e.end()].add(e)
     return outgoing, incoming
