@@ -4,7 +4,9 @@ from tests.flows.utils import make_test_flow_input
 from tests.flows import find_max_flow as find_max_flow_correct
 
 
-def parse_input(input: str) -> tuple[Graph, list[int], list[int], list[int]]:
+def parse_input(
+    input: str, expected: int
+) -> tuple[Graph, list[int], list[int], list[int]]:
     lines = input.strip().split("\n")
     n, _, s, t = map(int, lines[0].split())
 
@@ -19,7 +21,13 @@ def parse_input(input: str) -> tuple[Graph, list[int], list[int], list[int]]:
         edges.append((int(u), int(v)))
         capacities.append(int(cap))
 
-    return (Graph(vertices, edges), capacities, [s], [t])
+    sources = [0] * n
+    sinks = [0] * n
+
+    sources[s] = expected
+    sinks[t] = expected
+
+    return (Graph(vertices, edges), capacities, sources, sinks)
 
 
 def wrap_correct(
@@ -38,6 +46,6 @@ def run_test(
     expected: int,
     flow_fn: FlowFn,
 ):
-    g, c, sources, sinks = parse_input(input)
+    g, c, sources, sinks = parse_input(input, expected)
     mf = flow_fn(g, c, sources, sinks, 0, 0)
     assert mf == expected

@@ -6,10 +6,10 @@ import pytest
 
 @pytest.mark.slow
 @pytest.mark.parametrize("input,expected", INPUT_EXPECTED)
-def test_flow_random(input: str, expected: int):
+def test_flow_results(input: str, expected: int):
     run_test(input, expected, weighted_push_relabel)
 
 
 @pytest.mark.parametrize("input,expected", INPUT_EXPECTED)
-def test_correct(input: str, expected: int):
+def test_correct_results(input: str, expected: int):
     run_test(input, expected, wrap_correct)

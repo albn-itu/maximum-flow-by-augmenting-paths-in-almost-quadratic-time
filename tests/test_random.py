@@ -11,5 +11,5 @@ def test_flow_random(input: str, expected: int):
 
 
 @pytest.mark.parametrize("input,expected", INPUT_EXPECTED)
-def test_correct(input: str, expected: int):
+def test_correct_random(input: str, expected: int):
     run_test(input, expected, wrap_correct)
