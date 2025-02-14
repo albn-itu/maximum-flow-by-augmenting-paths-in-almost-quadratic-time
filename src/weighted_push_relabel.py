@@ -1,15 +1,12 @@
 from collections.abc import Callable
 from dataclasses import dataclass
-from collections import deque
 
+type Vertex = int
 
 @dataclass
 class Graph:
-    V: list[int]
-    E: list[tuple[int, int]]
-
-
-type Vertex = int
+    V: list[Vertex]
+    E: list[tuple[Vertex, Vertex]]
 
 
 @dataclass
@@ -21,16 +18,10 @@ class Edge:
 
     forward: bool
 
-    def c_f(self, f: dict["Edge", int]) -> int:
-        if self.forward:
-            return self.c - f.get(self, 0)
-        else:
-            return f.get(self, 0)
-
     def start(self):
         return self.u
 
-    def to(self):
+    def end(self):
         return self.v
 
     def reversed(self):
@@ -70,7 +61,7 @@ class WeightedPushRelabel:
 
         # Shorthands
         w, h = self.w, self.h
-        f, l, alive, admissible = self.f, self.l, self.alive, self.admissible
+        f, l, alive, admissible, c_f = self.f, self.l, self.alive, self.admissible, self.c_f
 
         def relabel(v):
             l[v] += 1
@@ -79,51 +70,77 @@ class WeightedPushRelabel:
                 alive.remove(v)
                 return
 
-            for e in self.outgoing[v]:
-                if l[v] % w(e) != 0:
-                    continue
-
-                x, y = (e.u, e.v)
-                if l[x] - l[y] >= 2 * w(e) and e.c_f(f) > 0:
+            for e in (e for e in self.outgoing[v] if l[v] % w(e) == 0):
+                x, y = e.start(), e.end()
+                if l[x] - l[y] >= 2 * w(e) and c_f(e) > 0:
                     admissible.add(e)
                 else:
                     admissible.discard(e)
-
-        # main loop:
-        #   first loop: while there is an alive, saturated vertex with no admissible edges, ...
-        #   second loop: while there is an alive vertex with excess
 
         while True:
             for v in AliveSaturatedVerticesWithNoAdmissibleOutEdges(self):
                 print("Relabeling v")
                 relabel(v)
 
-            break
-            # queue = deque(alive)
-            # while queue:
-            #     v = queue.popleft()
+            if (s := self.find_alive_vertex_with_excess()) is not None:
+                P = self.trace_path()
+                t = P[-1].end()
 
-    def absorption(self, v, f):
-        # see def. of f^out in the paper (p. 17) for why we can use -f_out below
-        return min(-self.f_out(v, f) + self.sources[v], self.sinks[v])
+                c_augment = min(self.residual_source(s),
+                                self.residual_sink(t),
+                                min(c_f(e) for e in P))
 
-    def excess(self, v, f):
+                for e in P:
+                    if e.forward:
+                        f[e] += c_augment
+                    else:
+                        f[e.reversed()] -= c_augment
+
+                    # "Adjust ..." - is this automatically done via c_f()?
+
+                    if c_f(e) == 0:
+                        admissible.discard(e)
+            else:
+                return f
+
+    def c_f(self, e: Edge):
+        if e.forward:
+            return e.c - self.f.get(e, 0)
+        else:
+            return self.f.get(e, 0)
+
+    def absorption(self, v):
+        # see def. of f^out in the paper (p. 17) for why we can use -f_out below - just substitution
+        return min(-self.f_out(v) + self.sources[v], self.sinks[v])
+
+    def excess(self, v):
         # recv = sum(f.get(e, 0) for e in incoming[v])
         # send = sum(f.get(e, 0) for e in outgoing[v])
         # return recv - send
         # Above is logically simple variant. Below is def. from paper.
-        return -self.f_out(v, f) + self.sources[v] - self.absorption(v, f)
+        return -self.f_out(v) + self.sources[v] - self.absorption(v)
 
-    def f_out(self, v, f):
-        return sum(f.get(e, 0) for e in self.outgoing[v])
+    def f_out(self, v):
+        return sum(self.f.get(e, 0) for e in self.outgoing[v])
 
-    def residual_source(self, v, f):
+    def residual_source(self, v):
         """Corresponds to Δ_f(s)"""
-        return self.excess(v, f)
+        return self.excess(v)
 
-    def residual_sink(self, v, f):
+    def residual_sink(self, v):
         """Corresponds to ∇_f(t)"""
-        return self.sinks[v] - self.absorption(v, f)
+        return self.sinks[v] - self.absorption(v)
+
+    # Black box for line 15 of Alg. 1 in the paper. Currently runs in inefficient O(n) time.
+    def find_alive_vertex_with_excess(self):
+        # TODO: Make fast.
+        for v in self.alive:
+            if self.residual_source(v) > 0:
+                return v
+        return None
+
+    def trace_path(self) -> list[Edge]:
+        raise NotImplementedError
 
 
 def weighted_push_relabel(G, c, sources, sinks, w, h):
@@ -138,8 +155,8 @@ def weighted_push_relabel(G, c, sources, sinks, w, h):
     return WeightedPushRelabel(G, c, sources, sinks, w, h).solve()
 
 
-
 # Black box for line 13 of Alg. 1 in the paper. Currently runs in inefficient O(n^2) time.
+# TODO: Make fast.
 class AliveSaturatedVerticesWithNoAdmissibleOutEdges:
     def __init__(self, instance: WeightedPushRelabel):
         self.instance = instance
@@ -153,7 +170,7 @@ class AliveSaturatedVerticesWithNoAdmissibleOutEdges:
         while self.cur_iteration:
             v = self.cur_iteration.pop()
 
-            is_saturated = self.instance.residual_sink(v, self.instance.f) == 0
+            is_saturated = self.instance.residual_sink(v) == 0
             has_admissible = any(e in self.instance.admissible for e in self.instance.outgoing[v])
 
             if is_saturated and not has_admissible:
@@ -175,6 +192,6 @@ def make_outgoing_incoming(G: Graph, c) -> tuple[dict[int, set[Edge]], dict[int,
         assert (u, v) not in outgoing[u] and (
             u, v) not in incoming[v], "Parallel edges are not supported yet."
         e = Edge(u=u, v=v, c=c[(u, v)], forward=True)
-        outgoing[u].add(e)
-        incoming[v].add(e)
+        outgoing[e.start()].add(e)
+        incoming[e.end()].add(e)
     return outgoing, incoming
