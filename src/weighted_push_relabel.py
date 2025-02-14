@@ -99,7 +99,7 @@ class WeightedPushRelabel:
                     if e.forward:
                         f[e] += c_augment
                     else:
-                        f[e.reversed()] -= c_augment
+                        f[e.forward_edge()] -= c_augment
 
                     # "Adjust ..." - is this automatically done via c_f()?
 
