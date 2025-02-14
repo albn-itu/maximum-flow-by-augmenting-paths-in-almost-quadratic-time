@@ -21,7 +21,10 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
+addopts = "-m \"not slow and not large\""
+
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "large: marks tests as large (deselect with '-m \"not large\"')",
 ]
 
