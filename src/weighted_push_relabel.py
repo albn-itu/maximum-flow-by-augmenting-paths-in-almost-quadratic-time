@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 type Vertex = int
 
@@ -47,14 +47,14 @@ class WeightedPushRelabel:
     h: int
 
     # State from paper
-    f: dict[Edge, int] = {}
-    l: dict[Vertex, int] = {}
-    alive: set[Vertex] = set()
-    admissible: set[Edge] = set()
+    f: dict[Edge, int] = field(default_factory=dict)
+    l: dict[Vertex, int] = field(default_factory=dict)
+    alive: set[Vertex] = field(default_factory=set)
+    admissible: set[Edge] = field(default_factory=set)
 
     # Our state
-    outgoing: dict[Vertex, set[Edge]] = {}
-    incoming: dict[Vertex, set[Edge]] = {}
+    outgoing: dict[Vertex, set[Edge]] = field(default_factory=dict)
+    incoming: dict[Vertex, set[Edge]] = field(default_factory=dict)
 
     def solve(self):
         self.outgoing, self.incoming = make_outgoing_incoming(self.G, self.c)
