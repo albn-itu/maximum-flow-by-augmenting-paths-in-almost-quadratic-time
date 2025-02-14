@@ -22,6 +22,12 @@ class Edge:
         else:
             return f.get(self, 0)
 
+    def start(self):
+        return self.u
+
+    def to(self):
+        return self.v
+
     def reversed(self):
         return Edge(u=self.v, v=self.u, c=self.c, forward=not self.forward)
 
@@ -39,7 +45,29 @@ def weighted_push_relabel(G, c, sources, sinks, w, h):
     h: height parameter
     """
 
-    outgoing = make_outgoing(G, c)
+    outgoing, incoming = make_outgoing_incoming(G, c)
+
+    def f_out(v, f):
+        return sum(f.get(e, 0) for e in outgoing[v])
+
+    def absorption(v, f):
+        # see def. of f^out in the paper (p. 17) for why we can use -f_out below
+        return min(-f_out(v, f) + sources[v], sinks[v])
+
+    def excess(v, f):
+        # recv = sum(f.get(e, 0) for e in incoming[v])
+        # send = sum(f.get(e, 0) for e in outgoing[v])
+        # return recv - send
+        # Above is logically simple variant. Below is def. from paper.
+        return -f_out(v, f) + sources[v] - absorption(v, f)
+
+    def residual_source(v, f): 
+        """Corresponds to Δ_f(s)"""
+        return excess(v, f)
+
+    def residual_sink(v, f):
+        """Corresponds to ∇_f(t)"""
+        return sinks[v] - absorption(v, f)
 
     f = {}
 
@@ -64,9 +92,23 @@ def weighted_push_relabel(G, c, sources, sinks, w, h):
             else:
                 admissible.discard(e)
 
+    # main loop:
+    #   first loop: while there is an alive, saturated vertex with no admissible edges, ...
+    #   second loop: while there is an alive vertex with excess
 
-def make_outgoing(G: Graph, c) -> dict[int, list[Edge]]:
-    outgoing = {v: [] for v in G.V}
+    # for v in list(alive):
+    #     if any(e in admissible for e in outgoing[v]):
+    #         continue
+
+
+
+
+def make_outgoing_incoming(G: Graph, c) -> tuple[dict[int, set[Edge]], dict[int, set[Edge]]]:
+    incoming = {v: set() for v in G.V}
+    outgoing = {u: set() for u in G.V}
     for u, v in G.E:
-        outgoing[u].append(Edge(u=u, v=v, c=c[(u, v)], forward=True))
-    return outgoing
+        assert (u, v) not in outgoing[u] and (u, v) not in incoming[v], "Parallel edges are not supported yet."
+        e = Edge(u=u, v=v, c=c[(u, v)], forward=True)
+        outgoing[u].add(e)
+        incoming[v].add(e)
+    return outgoing, incoming
