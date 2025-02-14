@@ -10,12 +10,12 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "meson>=1.7.0",
-    "numpy>=2.2.2",
+    "numpy>=2.2.3",
 ]
 
 [dependency-groups]
 dev = [
-    "basedpyright>=1.27.0",
+    "basedpyright>=1.27.1",
     "pytest>=8.3.4",
     "ruff>=0.9.6",
 ]
