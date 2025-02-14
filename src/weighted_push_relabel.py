@@ -29,6 +29,9 @@ class Edge:
     def reversed(self):
         return Edge(u=self.v, v=self.u, c=self.c, forward=not self.forward, id=-self.id)
 
+    def forward_edge(self):
+        return self if self.forward else self.reversed()
+
     def __hash__(self):
         return hash(self.id)
 
@@ -106,10 +109,11 @@ class WeightedPushRelabel:
                 return f
 
     def c_f(self, e: Edge):
+        f_e = self.f.get(e.forward_edge(), 0)
         if e.forward:
-            return e.c - self.f.get(e, 0)
+            return e.c - f_e
         else:
-            return self.f.get(e, 0)
+            return f_e
 
     def absorption(self, v):
         # see def. of f^out in the paper (p. 17) for why we can use -f_out below - just substitution
