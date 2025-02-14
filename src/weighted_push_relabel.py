@@ -12,6 +12,8 @@ class Graph:
 @dataclass
 class Edge:
     """u -> v with capacity c"""
+    id: int
+
     u: Vertex
     v: Vertex
     c: int
@@ -25,10 +27,10 @@ class Edge:
         return self.v
 
     def reversed(self):
-        return Edge(u=self.v, v=self.u, c=self.c, forward=not self.forward)
+        return Edge(u=self.v, v=self.u, c=self.c, forward=not self.forward, id=-self.id)
 
     def __hash__(self):
-        return hash((self.u, self.v))
+        return hash(self.id)
 
 
 @dataclass
@@ -188,10 +190,8 @@ class AliveSaturatedVerticesWithNoAdmissibleOutEdges:
 def make_outgoing_incoming(G: Graph, c) -> tuple[dict[int, set[Edge]], dict[int, set[Edge]]]:
     incoming = {v: set() for v in G.V}
     outgoing = {u: set() for u in G.V}
-    for u, v in G.E:
-        assert (u, v) not in outgoing[u] and (
-            u, v) not in incoming[v], "Parallel edges are not supported yet."
-        e = Edge(u=u, v=v, c=c[(u, v)], forward=True)
+    for i, (u, v) in enumerate(G.E):
+        e = Edge(id=i+1, u=u, v=v, c=c[(u, v)], forward=True)
         outgoing[e.start()].add(e)
         incoming[e.end()].add(e)
     return outgoing, incoming
