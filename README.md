@@ -33,6 +33,14 @@ nix develop flake.nix
 
 You can now run the Python scripts as usual or use the `uv` commands as above. I personally suggest using `uv` as it is more feature-rich.
 
+## Testing
+To test run:
+
+```bash
+pytest
+```
+
+not large should probably be specified by default
 
 ## Code style
 
