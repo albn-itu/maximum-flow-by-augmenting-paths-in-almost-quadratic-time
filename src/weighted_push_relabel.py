@@ -38,6 +38,9 @@ class Edge:
     def __hash__(self):
         return hash(self.id)
 
+    def __str__(self):
+        return f"{self.u} -({self.c})> {self.v}"
+
 
 @dataclass
 class WeightedPushRelabel:
@@ -57,15 +60,16 @@ class WeightedPushRelabel:
 
     # Our state
     outgoing: dict[Vertex, set[Edge]] = field(default_factory=dict)
-    incoming: dict[Vertex, set[Edge]] = field(default_factory=dict)
 
     def solve(self):
-        self.outgoing, self.incoming = make_outgoing_incoming(self.G, self.c)
+        self.outgoing = make_outgoing(self.G, self.c)
 
         self.f = defaultdict(int)
         self.l = {v: 0 for v in self.G.V}
         self.alive = set(self.G.V)
         self.admissible = set()
+
+        print(f"Initial state: {self}")
 
         # Shorthands
         w, h = self.w, self.h
@@ -93,14 +97,13 @@ class WeightedPushRelabel:
 
         while True:
             for v in AliveSaturatedVerticesWithNoAdmissibleOutEdges(self):
-                print("Relabeling: ", v)
+                print(f"Relabeling {v}")
                 relabel(v)
 
             if (s := self.find_alive_vertex_with_excess()) is not None:
                 P = self.trace_path(s)
-                print("path", P)
-                if P is None:
-                    return f
+                assert P is not None, "Path not found, but we always expect one."
+
                 t = P[-1].end()
 
                 c_augment = min(
@@ -159,8 +162,8 @@ class WeightedPushRelabel:
                 return v
         return None
 
-    def trace_path(self, s: int) -> list[Edge] | None:
-        parent: dict[int, Edge] = {}
+    def trace_path(self, s: Vertex) -> list[Edge] | None:
+        parent: dict[Vertex, Edge] = {}
 
         stack = [s]
 
@@ -238,13 +241,24 @@ class AliveSaturatedVerticesWithNoAdmissibleOutEdges:
         raise StopIteration
 
 
-def make_outgoing_incoming(
-    G: Graph, c: list[int]
-) -> tuple[dict[int, set[Edge]], dict[int, set[Edge]]]:
-    incoming = {v: set() for v in G.V}
+def make_outgoing(G: Graph, c: list[int]) -> dict[Vertex, set[Edge]]:
     outgoing = {u: set() for u in G.V}
     for i, ((u, v), cap) in enumerate(zip(G.E, c)):
         e = Edge(id=i + 1, u=u, v=v, c=cap, forward=True)
         outgoing[e.start()].add(e)
-        incoming[e.end()].add(e)
-    return outgoing, incoming
+    return outgoing
+
+
+if __name__ == "__main__":
+    res = weighted_push_relabel(
+        Graph(V=[0, 1, 2], E=[(0, 1), (1, 2)]),
+        c=[1, 1],
+        sources=[1, 0, 0],
+        sinks=[0, 0, 1],
+        w=lambda e: 1,
+        h=3
+    )
+
+    print("Result:")
+    for e, f in res.items():
+        print(f"  {f} flow via {e}")
