@@ -51,5 +51,5 @@ def run_test(
     flow_fn: FlowFn,
 ):
     g, c, sources, sinks = parse_input(input, expected)
-    mf, _ = flow_fn(g, c, sources, sinks, lambda e: 1, 6 * 6)
+    mf, _ = flow_fn(g, c, sources, sinks, lambda e: 1, len(g.V))
     assert mf == expected, f"Expected {expected}, got {mf}"
