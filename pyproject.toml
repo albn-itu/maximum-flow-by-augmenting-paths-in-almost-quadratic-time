@@ -21,10 +21,10 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-addopts = "-m \"not slow and not large\""
+addopts = "-m \"not slow and not maxflow\""
 
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-    "large: marks tests as large (deselect with '-m \"not large\"')",
+    "maxflow: marks tests as maxflow (deselect with '-m \"not maxflow\"')",
 ]
 

@@ -94,23 +94,27 @@ def get_maxflow_files(small: bool) -> list[tuple[str, int]]:
     return file_expected
 
 
+@pytest.mark.maxflow
 @pytest.mark.parametrize("input_file,expected", get_maxflow_files(True))
 def test_flow_maxflow_small(input_file: str, expected: int):
     run_test(input_file, expected, weighted_push_relabel)
 
 
+@pytest.mark.maxflow
 @pytest.mark.parametrize("input_file,expected", get_maxflow_files(True))
 def test_correct_maxflow_small(input_file: str, expected: int):
     run_test(input_file, expected, wrap_correct)
 
 
-@pytest.mark.large
+@pytest.mark.slow
+@pytest.mark.maxflow
 @pytest.mark.parametrize("input_file,expected", get_maxflow_files(False))
 def test_flow_maxflow_large(input_file: str, expected: int):
     run_test(input_file, expected, weighted_push_relabel)
 
 
-@pytest.mark.large
+@pytest.mark.slow
+@pytest.mark.maxflow
 @pytest.mark.parametrize("input_file,expected", get_maxflow_files(False))
 def test_correct_maxflow_large(input_file: str, expected: int):
     run_test(input_file, expected, wrap_correct)
