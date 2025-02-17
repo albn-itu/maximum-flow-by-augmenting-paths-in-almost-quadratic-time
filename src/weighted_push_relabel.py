@@ -99,9 +99,8 @@ class WeightedPushRelabel:
 
             if (s := self.find_alive_vertex_with_excess()) is not None:
                 P = self.trace_path(s)
-                print("path", P)
-                if P is None:
-                    return f
+                assert P is not None, "Path not found, but we always expect one."
+
                 t = P[-1].end()
 
                 c_augment = min(
