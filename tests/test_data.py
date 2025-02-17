@@ -5,12 +5,12 @@ import pytest
 
 
 DAG_INPUT_EXPECTED = [
+    pytest.param("tests/data/dag_edges_25.txt", 65, id="dag_edges_25"),
+    pytest.param("tests/data/dag_edges_50.txt", 169, id="dag_edges_50"),
     pytest.param("tests/data/dag_edges_100.txt", 222, id="dag_edges_100"),
     pytest.param("tests/data/dag_edges_150.txt", 264, id="dag_edges_150"),
     pytest.param("tests/data/dag_edges_200.txt", 357, id="dag_edges_200"),
-    pytest.param("tests/data/dag_edges_25.txt", 65, id="dag_edges_25"),
     pytest.param("tests/data/dag_edges_250.txt", 383, id="dag_edges_250"),
-    pytest.param("tests/data/dag_edges_50.txt", 169, id="dag_edges_50"),
     pytest.param("tests/data/dag_edges_500.txt", 674, id="dag_edges_500"),
 ]
 
@@ -22,21 +22,21 @@ FULLY_CONNECTED_INPUT_EXPECTED = [
         "tests/data/fully_connected_edges_210.txt", 312, id="fully_connected_edges_210"
     ),
     pytest.param(
+        "tests/data/fully_connected_edges_90.txt", 179, id="fully_connected_edges_90"
+    ),
+    pytest.param(
         "tests/data/fully_connected_edges_380.txt", 462, id="fully_connected_edges_380"
     ),
     # pytest.param("tests/data/fully_connected_edges_600.txt", 10, id="fully_connected_edges_600"),
-    pytest.param(
-        "tests/data/fully_connected_edges_90.txt", 179, id="fully_connected_edges_90"
-    ),
 ]
 
 LINE_INPUT_EXPECTED = [
+    pytest.param("tests/data/line_edges_25.txt", 4, id="line_edges_25"),
+    pytest.param("tests/data/line_edges_50.txt", 4, id="line_edges_50"),
     pytest.param("tests/data/line_edges_100.txt", 4, id="line_edges_100"),
     pytest.param("tests/data/line_edges_150.txt", 4, id="line_edges_150"),
     pytest.param("tests/data/line_edges_200.txt", 4, id="line_edges_200"),
-    pytest.param("tests/data/line_edges_25.txt", 4, id="line_edges_25"),
     pytest.param("tests/data/line_edges_250.txt", 4, id="line_edges_250"),
-    pytest.param("tests/data/line_edges_50.txt", 4, id="line_edges_50"),
     pytest.param("tests/data/line_edges_500.txt", 4, id="line_edges_500"),
 ]
 

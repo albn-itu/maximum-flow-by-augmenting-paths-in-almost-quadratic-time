@@ -168,6 +168,7 @@ class WeightedPushRelabel:
         parent: dict[Vertex, Edge] = {}
 
         stack = [s]
+        visited: set[Vertex] = set()
 
         while len(stack) > 0:
             v = stack.pop()
@@ -175,7 +176,7 @@ class WeightedPushRelabel:
             # If we have reached the sink, we are done
             if self.sinks[v] > 0:
                 path: list[Edge] = []
-                while v in parent.keys():
+                while v in parent.keys() and v != s:
                     path.append(parent[v])
                     v = parent[v].start()
                 path.reverse()
@@ -184,6 +185,10 @@ class WeightedPushRelabel:
             for e in self.outgoing[v]:
                 if e not in self.admissible:
                     continue
+                if e.end() in visited:
+                    continue
+
+                visited.add(e.end())
                 stack.append(e.end())
                 parent[e.end()] = e
 
@@ -256,7 +261,9 @@ class AliveSaturatedVerticesWithNoAdmissibleOutEdges:
         raise StopIteration
 
 
-def make_outgoing_incoming(G: Graph, c: list[int]) -> tuple[dict[Vertex, set[Edge]], dict[Vertex, set[Edge]]]:
+def make_outgoing_incoming(
+    G: Graph, c: list[int]
+) -> tuple[dict[Vertex, set[Edge]], dict[Vertex, set[Edge]]]:
     outgoing: dict[Vertex, set[Edge]] = {u: set() for u in G.V}
     incoming: dict[Vertex, set[Edge]] = {u: set() for u in G.V}
 
