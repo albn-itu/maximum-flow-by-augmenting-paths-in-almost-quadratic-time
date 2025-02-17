@@ -162,8 +162,8 @@ class WeightedPushRelabel:
                 return v
         return None
 
-    def trace_path(self, s: int) -> list[Edge] | None:
-        parent: dict[int, Edge] = {}
+    def trace_path(self, s: Vertex) -> list[Edge] | None:
+        parent: dict[Vertex, Edge] = {}
 
         stack = [s]
 
@@ -250,11 +250,15 @@ def make_outgoing(G: Graph, c: list[int]) -> dict[Vertex, set[Edge]]:
 
 
 if __name__ == "__main__":
-    weighted_push_relabel(
+    res = weighted_push_relabel(
         Graph(V=[0, 1, 2], E=[(0, 1), (1, 2)]),
         c=[1, 1],
         sources=[1, 0, 0],
         sinks=[0, 0, 1],
         w=lambda e: 1,
-        h=3*3
+        h=3
     )
+
+    print("Result:")
+    for e, f in res.items():
+        print(f"  {f} flow via {e}")
