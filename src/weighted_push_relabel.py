@@ -137,18 +137,15 @@ class WeightedPushRelabel:
             return f_e
 
     def absorption(self, v: Vertex) -> int:
-        # see def. of f^out in the paper (p. 17) for why we can use -f_out below - just substitution
-        return min(-self.f_out(v) + self.sources[v], self.sinks[v])
+        return min(self.BTG(v) + self.sources[v], self.sinks[v])
 
     def excess(self, v: Vertex) -> int:
-        # recv = sum(f.get(e, 0) for e in incoming[v])
-        # send = sum(f.get(e, 0) for e in outgoing[v])
-        # return recv - send
-        # Above is logically simple variant. Below is def. from paper.
-        return -self.f_out(v) + self.sources[v] - self.absorption(v)
+        return self.BTG(v) + self.sources[v] - self.absorption(v)
 
-    def f_out(self, v: Vertex) -> int:
-        return sum(self.f.get(e, 0) for e in self.outgoing[v])
+    def BTG(self, v: Vertex) -> int:
+        recv = sum(self.f.get(e, 0) for e in self.incoming[v])
+        send = sum(self.f.get(e, 0) for e in self.outgoing[v])
+        return recv - send
 
     def residual_source(self, v: Vertex) -> int:
         """Corresponds to Δ_f(s)"""
