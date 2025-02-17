@@ -1,4 +1,4 @@
-from src.utils import Edge, Graph
+from src.utils import Edge, Graph, topological_sort
 from typing import Callable
 from tests.flows.utils import make_test_flow_input
 from tests.flows import find_max_flow as find_max_flow_correct
@@ -53,7 +53,24 @@ def run_test(
     input: str,
     expected: int,
     flow_fn: FlowFn,
+    weight_fn: Callable[[Edge], int] = lambda e: 1,
 ):
     g, c, sources, sinks = parse_input(input, expected)
-    mf, _ = flow_fn(g, c, sources, sinks, lambda e: 1, len(g.V))
+    mf, _ = flow_fn(g, c, sources, sinks, weight_fn, len(g.V))
     assert mf == expected, f"Expected {expected}, got {mf}"
+
+
+def run_test_with_topsort(
+    input: str,
+    expected: int,
+    flow_fn: FlowFn,
+):
+    g, *_ = parse_input(input, expected)
+
+    ordering = topological_sort(g)
+    ranks = {v: i for i, v in enumerate(ordering)}
+
+    def weight_fn(e: Edge):
+        return abs(ranks[e.v] - ranks[e.u])
+
+    return run_test(input, expected, flow_fn, weight_fn)

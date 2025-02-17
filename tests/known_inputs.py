@@ -84,3 +84,7 @@ INPUT_EXPECTED = [
     pytest.param(IDK_GRAPH, 23, id="IDK_GRAPH"),
     pytest.param(THORES_FRACTIONAL_GRAPH, 1, id="THORES_FRACTIONAL_GRAPH"),
 ]
+
+INPUT_EXPECTED_DAG = [
+    pytest.param(CP_ALGORITHMS_GRAPH, 10, id="CP_ALGORITHMS_GRAPH"),
+]

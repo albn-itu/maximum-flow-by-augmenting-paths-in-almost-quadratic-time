@@ -29,6 +29,7 @@ markers = [
     "maxflow: marks tests as maxflow data (deselect with '-m \"not maxflow\"')",
     "large: marks tests as large (deselect with '-m \"not large\"')",
     "notdag: marks tests as not directed acyclic graphs (deselect with '-m \"not notdag\"')",
+    "w_top_sort: uses a topological-sort based weight function",
 ]
 
 [tool.ruff.lint]

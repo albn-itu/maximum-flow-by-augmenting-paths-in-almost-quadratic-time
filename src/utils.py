@@ -1,3 +1,4 @@
+from collections import defaultdict
 from dataclasses import dataclass
 from typing import override
 
@@ -41,3 +42,27 @@ class Edge:
     @override
     def __str__(self) -> str:
         return f"{self.u} -({self.c})> {self.v}"
+
+
+def topological_sort(G: Graph) -> list[Vertex]:
+    adj: dict[Vertex, set[Vertex]] = defaultdict(set)
+    for u, v in G.E:
+        adj[u].add(v)
+
+    visited: set[Vertex] = set()
+    sorted_vertices: list[Vertex] = []
+
+    def dfs(v: Vertex):
+        visited.add(v)
+
+        for w in adj[v]:
+            if w not in visited:
+                dfs(w)
+
+        sorted_vertices.append(v)
+
+    for v in G.V:
+        if v not in visited:
+            dfs(v)
+
+    return sorted_vertices[::-1]
