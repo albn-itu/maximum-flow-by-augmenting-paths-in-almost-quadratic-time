@@ -50,4 +50,4 @@ def run_test(
 ):
     g, c, sources, sinks = parse_input(input, expected)
     mf = flow_fn(g, c, sources, sinks, lambda e: 1, 6 * 6)
-    assert mf == expected
+    assert mf == expected, f"Expected {expected}, got {mf}"
