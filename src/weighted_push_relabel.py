@@ -63,9 +63,10 @@ class WeightedPushRelabel:
 
     # Our state
     outgoing: dict[Vertex, set[Edge]] = field(default_factory=dict)
+    incoming: dict[Vertex, set[Edge]] = field(default_factory=dict)
 
     def solve(self) -> tuple[int, dict[Edge, int]]:
-        self.outgoing = make_outgoing(self.G, self.c)
+        self.outgoing, self.incoming = make_outgoing_incoming(self.G, self.c)
 
         self.f = defaultdict(int)
         self.l = {v: 0 for v in self.G.V}
@@ -257,13 +258,20 @@ class AliveSaturatedVerticesWithNoAdmissibleOutEdges:
         raise StopIteration
 
 
-def make_outgoing(G: Graph, c: list[int]) -> dict[Vertex, set[Edge]]:
+def make_outgoing_incoming(G: Graph, c: list[int]) -> tuple[dict[Vertex, set[Edge]], dict[Vertex, set[Edge]]]:
     outgoing: dict[Vertex, set[Edge]] = {u: set() for u in G.V}
+    incoming: dict[Vertex, set[Edge]] = {u: set() for u in G.V}
+
     for i, ((u, v), cap) in enumerate(zip(G.E, c)):
         e = Edge(id=i + 1, u=u, v=v, c=cap, forward=True)
-        outgoing[e.start()].add(e)
-        outgoing[e.end()].add(e.reversed())
-    return outgoing
+        e_rev = e.reversed()
+
+        outgoing[u].add(e)
+        outgoing[v].add(e_rev)
+        incoming[u].add(e_rev)
+        incoming[v].add(e)
+
+    return outgoing, incoming
 
 
 if __name__ == "__main__":
