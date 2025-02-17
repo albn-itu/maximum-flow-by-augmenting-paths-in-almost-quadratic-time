@@ -1,4 +1,4 @@
-from src.weighted_push_relabel import Edge, Graph
+from src.utils import Edge, Graph
 from typing import Callable
 from tests.flows.utils import make_test_flow_input
 from tests.flows import find_max_flow as find_max_flow_correct

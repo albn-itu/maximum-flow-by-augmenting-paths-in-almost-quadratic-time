@@ -1,5 +1,5 @@
 from typing import Callable
-from src.weighted_push_relabel import Edge, Graph
+from src.utils import Edge, Graph
 
 TestEdge = tuple[int, int]
 
