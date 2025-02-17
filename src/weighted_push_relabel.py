@@ -123,7 +123,7 @@ class WeightedPushRelabel:
                     if c_f(e) == 0:
                         admissible.discard(e)
             else:
-                return f
+                return self.amount_of_routed_flow(f), f
 
     def c_f(self, e: Edge):
         f_e = self.f.get(e.forward_edge(), 0)
@@ -186,6 +186,13 @@ class WeightedPushRelabel:
                 parent[e.end()] = e
 
         return None
+
+    def amount_of_routed_flow(self, f: dict[Edge, int]) -> int:
+        amount = 0
+        for s in self.sources:
+            if self.sources[s] > 0:
+                amount += sum(f.get(e, 0) for e in self.outgoing[s])
+        return amount
 
 
 def weighted_push_relabel(
@@ -250,7 +257,7 @@ def make_outgoing(G: Graph, c: list[int]) -> dict[Vertex, set[Edge]]:
 
 
 if __name__ == "__main__":
-    res = weighted_push_relabel(
+    mf, res = weighted_push_relabel(
         Graph(V=[0, 1, 2], E=[(0, 1), (1, 2)]),
         c=[1, 1],
         sources=[1, 0, 0],
@@ -259,6 +266,6 @@ if __name__ == "__main__":
         h=3
     )
 
-    print("Result:")
+    print(f"Result: {mf} total flow")
     for e, f in res.items():
         print(f"  {f} flow via {e}")
