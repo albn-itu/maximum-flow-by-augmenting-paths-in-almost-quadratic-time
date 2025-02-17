@@ -137,12 +137,13 @@ class WeightedPushRelabel:
             return f_e
 
     def absorption(self, v: Vertex) -> int:
-        return min(self.BTG(v) + self.sources[v], self.sinks[v])
+        return min(self.net_flow(v) + self.sources[v], self.sinks[v])
 
     def excess(self, v: Vertex) -> int:
-        return self.BTG(v) + self.sources[v] - self.absorption(v)
+        return self.net_flow(v) + self.sources[v] - self.absorption(v)
 
-    def BTG(self, v: Vertex) -> int:
+    # This is exactly B^TG(v) from the paper - or alternatively "-f^out(v)".
+    def net_flow(self, v: Vertex) -> int:
         recv = sum(self.f.get(e, 0) for e in self.incoming[v])
         send = sum(self.f.get(e, 0) for e in self.outgoing[v])
         return recv - send
