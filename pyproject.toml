@@ -31,3 +31,7 @@ markers = [
     "notdag: marks tests as not directed acyclic graphs (deselect with '-m \"not notdag\"')",
 ]
 
+[tool.ruff.lint]
+ignore=["E741"]
+
+

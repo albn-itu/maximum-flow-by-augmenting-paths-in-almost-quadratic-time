@@ -1,4 +1,3 @@
-from collections import defaultdict
 from src.weighted_push_relabel import Edge, Graph
 from typing import Callable
 from tests.flows.utils import make_test_flow_input
@@ -32,8 +31,13 @@ def parse_input(
 
 
 def wrap_correct(
-    g: Graph, c: list[int], sources: list[int], sinks: list[int], w: int, h: int
-) -> tuple[int, defaultdict[Edge, int] | None]:
+    g: Graph,
+    c: list[int],
+    sources: list[int],
+    sinks: list[int],
+    w: Callable[[Edge], int],
+    h: int,
+) -> tuple[int, dict[Edge, int] | None]:
     edges, capacities, s, t = make_test_flow_input(g, c, sources, sinks, w, h)
 
     return (find_max_flow_correct(edges, capacities, s=s, t=t), None)
@@ -41,7 +45,7 @@ def wrap_correct(
 
 FlowFn = Callable[
     [Graph, list[int], list[int], list[int], Callable[[Edge], int], int],
-    tuple[int, defaultdict[Edge, int] | None],
+    tuple[int, dict[Edge, int] | None],
 ]
 
 

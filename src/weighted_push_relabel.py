@@ -1,6 +1,7 @@
 from collections import defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from typing import override
 
 type Vertex = int
 
@@ -35,10 +36,12 @@ class Edge:
     def forward_edge(self):
         return self if self.forward else self.reversed()
 
-    def __hash__(self):
+    @override
+    def __hash__(self) -> int:
         return hash(self.id)
 
-    def __str__(self):
+    @override
+    def __str__(self) -> str:
         return f"{self.u} -({self.c})> {self.v}"
 
 
@@ -61,7 +64,7 @@ class WeightedPushRelabel:
     # Our state
     outgoing: dict[Vertex, set[Edge]] = field(default_factory=dict)
 
-    def solve(self):
+    def solve(self) -> tuple[int, dict[Edge, int]]:
         self.outgoing = make_outgoing(self.G, self.c)
 
         self.f = defaultdict(int)
@@ -81,7 +84,7 @@ class WeightedPushRelabel:
             self.c_f,
         )
 
-        def relabel(v):
+        def relabel(v: Vertex):
             l[v] += 1
 
             if l[v] > 9 * h:
@@ -132,30 +135,30 @@ class WeightedPushRelabel:
         else:
             return f_e
 
-    def absorption(self, v):
+    def absorption(self, v: Vertex) -> int:
         # see def. of f^out in the paper (p. 17) for why we can use -f_out below - just substitution
         return min(-self.f_out(v) + self.sources[v], self.sinks[v])
 
-    def excess(self, v):
+    def excess(self, v: Vertex) -> int:
         # recv = sum(f.get(e, 0) for e in incoming[v])
         # send = sum(f.get(e, 0) for e in outgoing[v])
         # return recv - send
         # Above is logically simple variant. Below is def. from paper.
         return -self.f_out(v) + self.sources[v] - self.absorption(v)
 
-    def f_out(self, v):
+    def f_out(self, v: Vertex) -> int:
         return sum(self.f.get(e, 0) for e in self.outgoing[v])
 
-    def residual_source(self, v):
+    def residual_source(self, v: Vertex) -> int:
         """Corresponds to Δ_f(s)"""
         return self.excess(v)
 
-    def residual_sink(self, v):
+    def residual_sink(self, v: Vertex) -> int:
         """Corresponds to ∇_f(t)"""
         return self.sinks[v] - self.absorption(v)
 
     # Black box for line 15 of Alg. 1 in the paper. Currently runs in inefficient O(n) time.
-    def find_alive_vertex_with_excess(self):
+    def find_alive_vertex_with_excess(self) -> Vertex | None:
         # TODO: Make fast.
         for v in self.alive:
             if self.residual_source(v) > 0:
@@ -202,7 +205,7 @@ def weighted_push_relabel(
     sinks: list[int],
     w: Callable[[Edge], int],
     h: int,
-):
+) -> tuple[int, dict[Edge, int]]:
     """
     G: a graph (V, E)
     c: capacities for each edge
@@ -219,6 +222,12 @@ def weighted_push_relabel(
 # Black box for line 13 of Alg. 1 in the paper. Currently runs in inefficient O(n^2) time.
 # TODO: Make fast.
 class AliveSaturatedVerticesWithNoAdmissibleOutEdges:
+    instance: WeightedPushRelabel
+
+    # Overriden in __iter__
+    cur_iteration: list[Vertex] = []
+    returned_some: bool = False
+
     def __init__(self, instance: WeightedPushRelabel):
         self.instance = instance
 
@@ -227,7 +236,7 @@ class AliveSaturatedVerticesWithNoAdmissibleOutEdges:
         self.returned_some = False
         return self
 
-    def __next__(self):
+    def __next__(self) -> Vertex:
         while self.cur_iteration:
             v = self.cur_iteration.pop()
 
@@ -249,7 +258,7 @@ class AliveSaturatedVerticesWithNoAdmissibleOutEdges:
 
 
 def make_outgoing(G: Graph, c: list[int]) -> dict[Vertex, set[Edge]]:
-    outgoing = {u: set() for u in G.V}
+    outgoing: dict[Vertex, set[Edge]] = {u: set() for u in G.V}
     for i, ((u, v), cap) in enumerate(zip(G.E, c)):
         e = Edge(id=i + 1, u=u, v=v, c=cap, forward=True)
         outgoing[e.start()].add(e)
@@ -263,7 +272,7 @@ if __name__ == "__main__":
         sources=[1, 0, 0],
         sinks=[0, 0, 1],
         w=lambda e: 1,
-        h=3
+        h=3,
     )
 
     print(f"Result: {mf} total flow")

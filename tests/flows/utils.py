@@ -1,10 +1,16 @@
-from src.weighted_push_relabel import Graph
+from typing import Callable
+from src.weighted_push_relabel import Edge, Graph
 
 TestEdge = tuple[int, int]
 
 
 def make_test_flow_input(
-    G: Graph, c: list[int], sources: list[int], sinks: list[int], _w: int, _h: int
+    G: Graph,
+    c: list[int],
+    sources: list[int],
+    sinks: list[int],
+    _w: Callable[[Edge], int],
+    _h: int,
 ) -> tuple[list[TestEdge], list[int], int, int]:
     edges = G.E
     capacities = c
