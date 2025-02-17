@@ -1,3 +1,6 @@
+import pytest
+
+
 INPUT_184 = """
 16 34 0 15
 0-(66)>1
@@ -745,8 +748,8 @@ INPUT_517_EDGES = """
 """
 
 INPUT_EXPECTED = [
-    (INPUT_184, 184),
-    (INPUT_51, 51),
-    (INPUT_134_EDGES, 121),
-    (INPUT_517_EDGES, 247),
+    pytest.param(INPUT_184, 184, id="INPUT_184"),
+    pytest.param(INPUT_51, 51, id="INPUT_51"),
+    pytest.param(INPUT_134_EDGES, 121, id="INPUT_134_EDGES"),
+    pytest.param(INPUT_517_EDGES, 247, id="INPUT_517_EDGES"),
 ]

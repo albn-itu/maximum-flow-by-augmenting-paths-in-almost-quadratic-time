@@ -1,4 +1,7 @@
 # https://cp-algorithms.com/graph/edmonds_karp.html
+import pytest
+
+
 CP_ALGORITHMS_GRAPH = """
 6 9 0 5
 0-(7)>1
@@ -72,10 +75,12 @@ THORES_FRACTIONAL_GRAPH = """
 """
 
 INPUT_EXPECTED = [
-    (CP_ALGORITHMS_GRAPH, 10),
-    (GEEKS_FOR_GEEKS_GRAPH, 23),
-    (GEEKS_FOR_GEEKS_MAXFLOW_GRAPH, 23),
-    (PARALLEL_EDGES, 5),  # Not supported before expander
-    (IDK_GRAPH, 23),
-    (THORES_FRACTIONAL_GRAPH, 1),
+    pytest.param(CP_ALGORITHMS_GRAPH, 10, id="CP_ALGORITHMS_GRAPH"),
+    pytest.param(GEEKS_FOR_GEEKS_GRAPH, 23, id="GEEKS_FOR_GEEKS_GRAPH"),
+    pytest.param(GEEKS_FOR_GEEKS_MAXFLOW_GRAPH, 23, id="GEEKS_FOR_GEEKS_MAXFLOW_GRAPH"),
+    pytest.param(
+        PARALLEL_EDGES, 5, id="PARALLEL_EDGES"
+    ),  # Not supported before expander
+    pytest.param(IDK_GRAPH, 23, id="IDK_GRAPH"),
+    pytest.param(THORES_FRACTIONAL_GRAPH, 1, id="THORES_FRACTIONAL_GRAPH"),
 ]

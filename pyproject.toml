@@ -21,10 +21,13 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-addopts = "-m \"not slow and not maxflow\""
+addopts = "-m \"paper and not notdag and not correct and not maxflow and not large\""
 
 markers = [
-    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-    "maxflow: marks tests as maxflow (deselect with '-m \"not maxflow\"')",
+    "paper: tests for the paper algorithm (deselect with '-m \"not paper\"')",
+    "correct: tests for the known good algorithms (deselect with '-m \"not correct\"')",
+    "maxflow: marks tests as maxflow data (deselect with '-m \"not maxflow\"')",
+    "large: marks tests as large (deselect with '-m \"not large\"')",
+    "notdag: marks tests as not directed acyclic graphs (deselect with '-m \"not notdag\"')",
 ]
 
