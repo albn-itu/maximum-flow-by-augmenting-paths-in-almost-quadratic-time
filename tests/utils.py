@@ -1,4 +1,4 @@
-from src.weighted_push_relabel import Graph
+from src.weighted_push_relabel import Edge, Graph
 from typing import Callable
 from tests.flows.utils import make_test_flow_input
 from tests.flows import find_max_flow as find_max_flow_correct
@@ -38,7 +38,9 @@ def wrap_correct(
     return find_max_flow_correct(edges, capacities, s=s, t=t)
 
 
-FlowFn = Callable[[Graph, list[int], list[int], list[int], int, int], int]
+FlowFn = Callable[
+    [Graph, list[int], list[int], list[int], Callable[[Edge], int], int], int
+]
 
 
 def run_test(
@@ -47,5 +49,5 @@ def run_test(
     flow_fn: FlowFn,
 ):
     g, c, sources, sinks = parse_input(input, expected)
-    mf = flow_fn(g, c, sources, sinks, 0, 0)
+    mf = flow_fn(g, c, sources, sinks, lambda e: 1, 6 * 6)
     assert mf == expected

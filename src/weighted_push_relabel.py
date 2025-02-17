@@ -1,7 +1,9 @@
+from collections import defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
 type Vertex = int
+
 
 @dataclass
 class Graph:
@@ -12,6 +14,7 @@ class Graph:
 @dataclass
 class Edge:
     """u -> v with capacity c"""
+
     id: int
 
     u: Vertex
@@ -47,7 +50,7 @@ class WeightedPushRelabel:
     h: int
 
     # State from paper
-    f: dict[Edge, int] = field(default_factory=dict)
+    f: dict[Edge, int] = field(default_factory=defaultdict[Edge, int])
     l: dict[Vertex, int] = field(default_factory=dict)
     alive: set[Vertex] = field(default_factory=set)
     admissible: set[Edge] = field(default_factory=set)
@@ -58,7 +61,7 @@ class WeightedPushRelabel:
     def solve(self):
         self.outgoing = make_outgoing(self.G, self.c)
 
-        self.f = {}
+        self.f = defaultdict(int)
         self.l = {v: 0 for v in self.G.V}
         self.alive = set(self.G.V)
         self.admissible = set()
@@ -67,7 +70,13 @@ class WeightedPushRelabel:
 
         # Shorthands
         w, h = self.w, self.h
-        f, l, alive, admissible, c_f = self.f, self.l, self.alive, self.admissible, self.c_f
+        f, l, alive, admissible, c_f = (
+            self.f,
+            self.l,
+            self.alive,
+            self.admissible,
+            self.c_f,
+        )
 
         def relabel(v):
             l[v] += 1
@@ -89,12 +98,17 @@ class WeightedPushRelabel:
                 relabel(v)
 
             if (s := self.find_alive_vertex_with_excess()) is not None:
-                P = self.trace_path()
+                P = self.trace_path(s)
+                print("path", P)
+                if P is None:
+                    return f
                 t = P[-1].end()
 
-                c_augment = min(self.residual_source(s),
-                                self.residual_sink(t),
-                                min(c_f(e) for e in P))
+                c_augment = min(
+                    self.residual_source(s),
+                    self.residual_sink(t),
+                    min(c_f(e) for e in P),
+                )
 
                 for e in P:
                     if e.forward:
@@ -146,11 +160,40 @@ class WeightedPushRelabel:
                 return v
         return None
 
-    def trace_path(self) -> list[Edge]:
-        raise NotImplementedError
+    def trace_path(self, s: int) -> list[Edge] | None:
+        parent: dict[int, Edge] = {}
+
+        stack = [s]
+
+        while len(stack) > 0:
+            v = stack.pop()
+
+            # If we have reached the sink, we are done
+            if self.sinks[v] > 0:
+                path: list[Edge] = []
+                while v in parent.keys():
+                    path.append(parent[v])
+                    v = parent[v].start()
+                path.reverse()
+                return path
+
+            for e in self.outgoing[v]:
+                if e not in self.admissible:
+                    continue
+                stack.append(e.end())
+                parent[e.end()] = e
+
+        return None
 
 
-def weighted_push_relabel(G: Graph, c: list[int], sources: list[int], sinks: list[int], w: Callable[[Edge], int], h: int):
+def weighted_push_relabel(
+    G: Graph,
+    c: list[int],
+    sources: list[int],
+    sinks: list[int],
+    w: Callable[[Edge], int],
+    h: int,
+):
     """
     G: a graph (V, E)
     c: capacities for each edge
@@ -180,7 +223,9 @@ class AliveSaturatedVerticesWithNoAdmissibleOutEdges:
             v = self.cur_iteration.pop()
 
             is_saturated = self.instance.residual_sink(v) == 0
-            has_admissible = any(e in self.instance.admissible for e in self.instance.outgoing[v])
+            has_admissible = any(
+                e in self.instance.admissible for e in self.instance.outgoing[v]
+            )
 
             if is_saturated and not has_admissible:
                 self.returned_some = True
@@ -197,7 +242,7 @@ class AliveSaturatedVerticesWithNoAdmissibleOutEdges:
 def make_outgoing(G: Graph, c: list[int]) -> dict[Vertex, set[Edge]]:
     outgoing = {u: set() for u in G.V}
     for i, ((u, v), cap) in enumerate(zip(G.E, c)):
-        e = Edge(id=i+1, u=u, v=v, c=cap, forward=True)
+        e = Edge(id=i + 1, u=u, v=v, c=cap, forward=True)
         outgoing[e.start()].add(e)
     return outgoing
 
