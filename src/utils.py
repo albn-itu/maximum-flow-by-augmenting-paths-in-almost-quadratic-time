@@ -30,7 +30,7 @@ class Edge:
         return self.v
 
     def reversed(self):
-        return Edge(u=self.v, v=self.u, c=0, forward=not self.forward, id=-self.id)
+        return Edge(u=self.v, v=self.u, c=self.c, forward=not self.forward, id=-self.id)
 
     def forward_edge(self):
         return self if self.forward else self.reversed()
