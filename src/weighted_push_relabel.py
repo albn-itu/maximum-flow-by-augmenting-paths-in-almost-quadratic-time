@@ -262,6 +262,7 @@ def make_outgoing(G: Graph, c: list[int]) -> dict[Vertex, set[Edge]]:
     for i, ((u, v), cap) in enumerate(zip(G.E, c)):
         e = Edge(id=i + 1, u=u, v=v, c=cap, forward=True)
         outgoing[e.start()].add(e)
+        outgoing[e.end()].add(e.reversed())
     return outgoing
 
 
