@@ -31,7 +31,7 @@ nix develop
 nix develop flake.nix
 ```
 
-You can now run the Python scripts as usual or use the `uv` commands as above. I personally suggest using `uv` as it is more feature-rich.
+You can now run the Python scripts as usual or use the `uv` commands as above.
 
 ## Testing
 To test run:
@@ -40,7 +40,16 @@ To test run:
 pytest
 ```
 
-not large should probably be specified by default
+List all the tests:
+
+```bash
+pytest --collect-only -q
+```
+
+Suggested filters:
+```bash
+pytest -k "known_inputs"
+```
 
 ## Code style
 
