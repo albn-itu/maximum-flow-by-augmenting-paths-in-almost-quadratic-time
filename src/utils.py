@@ -30,7 +30,7 @@ class Edge:
         return self.v
 
     def reversed(self):
-        return Edge(u=self.v, v=self.u, c=self.c, forward=not self.forward, id=-self.id)
+        return Edge(u=self.v, v=self.u, c=0, forward=not self.forward, id=-self.id)
 
     def forward_edge(self):
         return self if self.forward else self.reversed()
@@ -41,7 +41,7 @@ class Edge:
 
     @override
     def __str__(self) -> str:
-        return f"{self.u} -({self.c})> {self.v}"
+        return f"{self.u}-({self.c})>{self.v}"
 
 
 def topological_sort(G: Graph) -> list[Vertex]:
