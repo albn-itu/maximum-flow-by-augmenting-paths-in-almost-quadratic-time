@@ -1,3 +1,5 @@
+import os
+from src import benchmark
 from src.utils import Edge, Graph, topological_sort
 from typing import Callable
 from tests.flows.utils import make_test_flow_input
@@ -55,9 +57,19 @@ def run_test(
     flow_fn: FlowFn,
     weight_fn: Callable[[Edge], int] = lambda e: 1,
 ):
+    if benchmark.cur_bench is None:
+        benchmark.start_benchmark(os.environ.get("PYTEST_CURRENT_TEST") or "unknown")
+    benchmark.register(
+        "bench_config.name", os.environ.get("PYTEST_CURRENT_TEST") or "unknown"
+    )
+
     g, c, sources, sinks = parse_input(input, expected)
+    benchmark.register("bench_config.expected", expected)
+
     mf, _ = flow_fn(g, c, sources, sinks, weight_fn, len(g.V))
     assert mf == expected, f"Expected {expected}, got {mf}"
+
+    benchmark.end_benchmark()
 
 
 def run_test_with_topsort(

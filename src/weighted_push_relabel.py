@@ -1,6 +1,8 @@
 from collections import defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass, field
+
+from src import benchmark
 from .utils import Edge, Graph, Vertex
 
 
@@ -33,6 +35,14 @@ class WeightedPushRelabel:
         self.admissible = set()
 
         print(f"Initial state: {self}")
+        benchmark.register(
+            "instance",
+            {
+                "m": len(self.G.E),
+                "n": len(self.G.V),
+                "h": self.h,
+            },
+        )
 
         # Shorthands
         w, h = self.w, self.h
@@ -46,9 +56,13 @@ class WeightedPushRelabel:
 
         def relabel(v: Vertex):
             l[v] += 1
+            benchmark.register_or_update(
+                "blik.highest_level", l[v], lambda x: max(x, l[v])
+            )
 
             if l[v] > 9 * h:
                 alive.remove(v)
+                benchmark.register_or_update("blik.marked_dead", 1, lambda x: x + 1)
                 return
 
             edges = (self.outgoing[v]).union(self.incoming[v])
@@ -56,13 +70,22 @@ class WeightedPushRelabel:
                 x, y = e.start(), e.end()
                 if l[x] - l[y] >= 2 * w(e) and c_f(e) > 0:
                     admissible.add(e)
+                    benchmark.register_or_update(
+                        "blik.marked_admissible", 1, lambda x: x + 1
+                    )
                 else:
                     admissible.discard(e)
+                    benchmark.register_or_update(
+                        "blik.marked_inadmissible", 1, lambda x: x + 1
+                    )
 
         while True:
+            benchmark.register_or_update("blik.iterations", 1, lambda x: x + 1)
+
             for v in AliveSaturatedVerticesWithNoAdmissibleOutEdges(self):
                 print(f"Relabeling {v}")
                 relabel(v)
+                benchmark.register_or_update("blik.relabels", 1, lambda x: x + 1)
 
             if (s := self.find_alive_vertex_with_excess()) is not None:
                 P = self.trace_path(s)
@@ -76,7 +99,18 @@ class WeightedPushRelabel:
                     min(c_f(e) for e in P),
                 )
 
+                benchmark.register_or_update(
+                    "blik.max_updates", len(P), lambda x: max(x, len(P or []))
+                )
+                benchmark.register_or_update(
+                    "blik.min_updates", len(P), lambda x: min(x, len(P or []))
+                )
+
                 for e in P:
+                    benchmark.register_or_update(
+                        "blik.total_updates", 1, lambda x: x + 1
+                    )
+
                     if e.forward:
                         f[e] += c_augment
                     else:
@@ -86,6 +120,9 @@ class WeightedPushRelabel:
 
                     if c_f(e) == 0:
                         admissible.discard(e)
+                        benchmark.register_or_update(
+                            "blik.marked_inadmissible", 1, lambda x: x + 1
+                        )
             else:
                 return self.amount_of_routed_flow(f), f
 
