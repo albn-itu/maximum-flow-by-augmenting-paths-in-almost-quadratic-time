@@ -51,7 +51,8 @@ class WeightedPushRelabel:
                 alive.remove(v)
                 return
 
-            for e in (e for e in self.outgoing[v] if l[v] % w(e) == 0):
+            edges = (self.outgoing[v]).union(self.incoming[v])
+            for e in (e for e in edges if l[v] % w(e) == 0):
                 x, y = e.start(), e.end()
                 if l[x] - l[y] >= 2 * w(e) and c_f(e) > 0:
                     admissible.add(e)

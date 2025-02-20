@@ -74,6 +74,19 @@ THORES_FRACTIONAL_GRAPH = """
 3-(1)>4
 """
 
+# Small graph that fails
+SIMOLEAN_GRAPH = """
+6 8 0 5
+0-(3)>1
+0-(9)>2
+0-(9)>3
+0-(8)>4
+1-(4)>5
+2-(1)>5
+3-(3)>5
+4-(3)>5
+"""
+
 INPUT_EXPECTED = [
     pytest.param(CP_ALGORITHMS_GRAPH, 10, id="CP_ALGORITHMS_GRAPH"),
     pytest.param(GEEKS_FOR_GEEKS_GRAPH, 23, id="GEEKS_FOR_GEEKS_GRAPH"),
@@ -83,8 +96,10 @@ INPUT_EXPECTED = [
     ),  # Not supported before expander
     pytest.param(IDK_GRAPH, 23, id="IDK_GRAPH"),
     pytest.param(THORES_FRACTIONAL_GRAPH, 1, id="THORES_FRACTIONAL_GRAPH"),
+    pytest.param(SIMOLEAN_GRAPH, 10, id="SIMOLEAN_GRAPH"),
 ]
 
 INPUT_EXPECTED_DAG = [
     pytest.param(CP_ALGORITHMS_GRAPH, 10, id="CP_ALGORITHMS_GRAPH"),
+    pytest.param(SIMOLEAN_GRAPH, 10, id="SIMOLEAN_GRAPH"),
 ]
