@@ -1,7 +1,31 @@
+import os
+from src import benchmark
 from src.utils import Edge, Graph, topological_sort
-from typing import Callable
+from typing import Callable, ParamSpec, TypeVar
 from tests.flows.utils import make_test_flow_input
 from tests.flows import find_max_flow as find_max_flow_correct
+from functools import wraps
+
+Param = ParamSpec("Param")
+RetType = TypeVar("RetType")
+
+
+def bench(func: Callable[Param, RetType]) -> Callable[Param, RetType]:
+    print("benchmark")
+
+    @wraps(func)
+    def wrapper(*args: Param.args, **kwargs: Param.kwargs) -> RetType:
+        test_name = os.environ.get("PYTEST_CURRENT_TEST") or "unknown"
+        benchmark.start_benchmark(test_name)
+        benchmark.register("bench_config.name", test_name)
+
+        res = func(*args, **kwargs)
+
+        benchmark.end_benchmark()
+
+        return res
+
+    return wrapper
 
 
 def parse_input(
@@ -59,6 +83,7 @@ def run_test(
     g, c, sources, sinks = parse_input(input, expected)
     h = h if h is not None else len(g.V)
     mf, _ = flow_fn(g, c, sources, sinks, weight_fn, h)
+    benchmark.register("bench_config.expected", expected)
     assert mf == expected, f"Expected {expected}, got {mf}"
 
 

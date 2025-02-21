@@ -1,4 +1,5 @@
 from typing import Callable
+from src import benchmark
 from src.utils import Edge, Graph
 
 TestEdge = tuple[int, int]
@@ -19,5 +20,8 @@ def make_test_flow_input(
 
     source = sources[0] if sources else 0
     sink = sinks[0] if sinks else 0
+
+    benchmark.register("bench_config.source", source)
+    benchmark.register("bench_config.sink", sink)
 
     return edges, capacities, source, sink

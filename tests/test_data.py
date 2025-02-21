@@ -1,6 +1,12 @@
 import os
+from src import benchmark
 from src.weighted_push_relabel import weighted_push_relabel
-from tests.utils import run_test as run_test_str, run_test_with_topsort, wrap_correct, FlowFn
+from tests.utils import (
+    run_test as run_test_str,
+    run_test_with_topsort,
+    wrap_correct,
+    FlowFn,
+)
 import pytest
 
 
@@ -47,6 +53,9 @@ def read_file(file: str) -> str:
 
 
 def run_test(input_file: str, expected: int, flow_fn: FlowFn):
+    benchmark.start_benchmark(os.environ.get("PYTEST_CURRENT_TEST") or "unknown")
+    benchmark.register_or_update("bench_config.file", input_file, lambda x: x)
+
     input_str = read_file(input_file)
     run_test_str(input_str, expected, flow_fn)
 

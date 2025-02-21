@@ -1,5 +1,6 @@
 from collections import defaultdict
 
+from src import benchmark
 from tests.flows.utils import TestEdge
 
 # all credit to Riko Jacob for this code
@@ -21,6 +22,8 @@ def find_max_flow(
     for u, d in flow_graph.items():
         for v, c in d.items():
             flow_edges.append((u, v, c))
+
+    benchmark.register("capacity.flow", max_flow)
 
     return max_flow, flow_edges
 
@@ -69,6 +72,11 @@ def flow(
                 mincap = mincap // 2
                 continue
             else:
+                updates = benchmark.get_or_default("capacity.edge_updates", 0)
+                iters = benchmark.get_or_default("capacity.iterations", 1)
+                if iters is not None and updates is not None:
+                    benchmark.register("capacity.avg_updates", updates / iters)
+
                 return (
                     current_flow,
                     {
@@ -85,3 +93,18 @@ def flow(
             edge_updates += 2
             graph[u][v] -= saturation
             graph[v][u] += saturation
+
+        benchmark.register_or_update(
+            "capacity.edge_updates", edge_updates, lambda x: x + edge_updates
+        )
+        benchmark.register_or_update(
+            "capacity.max_edge_updates",
+            edge_updates,
+            lambda x: edge_updates if edge_updates > x else x,
+        )
+        benchmark.register_or_update(
+            "capacity.min_edge_updates",
+            edge_updates,
+            lambda x: edge_updates if edge_updates < x else x,
+        )
+        benchmark.register_or_update("capacity.iterations", 1, lambda x: x + 1)
