@@ -3,6 +3,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from src import benchmark
+from .visualisation import graphviz_frame
 from .utils import Edge, Graph, Vertex
 
 
@@ -82,7 +83,7 @@ class WeightedPushRelabel:
                         "blik.marked_inadmissible", 1, lambda x: x + 1
                     )
 
-        self.graphviz_frame("Initial")
+        graphviz_frame(self, "Initial")
 
         while True:
             benchmark.register_or_update("blik.iterations", 1, lambda x: x + 1)
@@ -93,13 +94,13 @@ class WeightedPushRelabel:
                 benchmark.register_or_update(
                     "blik.relabels", 1, lambda x: x + 1)
 
-            self.graphviz_frame("After relabel")
+            graphviz_frame(self, "After relabel")
 
             if (s := self.find_alive_vertex_with_excess()) is not None:
                 P = self.trace_path(s)
                 assert P is not None, "Path not found, but we always expect one."
 
-                self.graphviz_frame("Traced path", aug_path=set(P))
+                graphviz_frame(self, "Traced path", aug_path=set(P))
 
                 t = P[-1].end()
 
@@ -136,9 +137,9 @@ class WeightedPushRelabel:
                             "blik.marked_inadmissible", 1, lambda x: x + 1
                         )
 
-                self.graphviz_frame("After pushing")
+                graphviz_frame(self, "After pushing")
             else:
-                self.graphviz_frame("Final")
+                graphviz_frame(self, "Final")
 
                 result = self.amount_of_routed_flow(f)
                 benchmark.register("blik.flow", result)
@@ -148,75 +149,6 @@ class WeightedPushRelabel:
                     benchmark.register("blik.avg_updates", updates / iters)
 
                 return result, f
-
-    def graphviz_frame(self, kind: str = "", aug_path: set[Edge] | None = None):
-        if aug_path is None:
-            aug_path = set()
-
-        path = f"frames/iter_{self.frames}.dot"
-        self.frames += 1
-
-        all_edges: set[Edge] = set()
-        for v in self.G.V:
-            all_edges.update(self.outgoing[v])
-
-        nodes: set[str] = set()
-        edges: list[str] = list()
-
-        for e in all_edges:
-            def mk_node(v: int):
-                color = "black" if v in self.alive else "firebrick3"
-                style = "solid" if v in self.alive else "dashed"
-                return f'{v} [label="{v} ({self.l[v]:>2})", color="{color}", fontcolor="{color}", style="{style}"];'
-
-            nodes.add(mk_node(e.u))
-            nodes.add(mk_node(e.v))
-
-            if not e.forward:
-                continue
-
-            dir = "forward"
-            if self.c_f(e.reversed()) > 0:
-                if self.c_f(e) == 0:
-                    dir = "back"
-                else:
-                    dir = "both"
-
-            color = "black"
-            style = "solid"
-            if self.c_f(e) == 0:
-                color = "firebrick3"
-            elif self.f[e] > 0:
-                if e in self.admissible:
-                    color = "chartreuse4"
-                else:
-                    color = "goldenrod"
-                    style = "dashed"
-            elif e not in self.admissible:
-                color = "gray"
-                style = "dashed"
-
-            if e in aug_path or e.reversed() in aug_path:
-                color = "blue"
-
-            attrs = {
-                "label": f"{self.c_f(e)}/{self.c_f(e.reversed())}/{e.c}\\lw={self.w(e)}",
-                "color": color,
-                "style": style,
-                "dir": dir,
-                "arrowtail": "empty",
-                "penwidth": 2
-            }
-
-            attrs_str = ",".join(f'{k}="{v}"' for k, v in attrs.items())
-            edges.append(f'{e.u} -> {e.v} [{attrs_str}];')
-
-        with open(path, "w") as f:
-            _ = f.write("digraph G {\n")
-            _ = f.write(f'   labelloc="t"; label="{kind}";ordering=out;\n')
-            f.writelines(f"   {node}\n" for node in nodes)
-            f.writelines(f"   {edge}\n" for edge in edges)
-            _ = f.write("}\n")
 
     def c_f(self, e: Edge):
         f_e = self.f.get(e.forward_edge(), 0)
