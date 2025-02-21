@@ -100,15 +100,15 @@ class WeightedPushRelabel:
                 )
 
                 benchmark.register_or_update(
-                    "blik.max_updates", len(P), lambda x: max(x, len(P or []))
+                    "blik.max_edge_updates", len(P), lambda x: max(x, len(P or []))
                 )
                 benchmark.register_or_update(
-                    "blik.min_updates", len(P), lambda x: min(x, len(P or []))
+                    "blik.min_edge_updates", len(P), lambda x: min(x, len(P or []))
                 )
 
                 for e in P:
                     benchmark.register_or_update(
-                        "blik.total_updates", 1, lambda x: x + 1
+                        "blik.edge_updates", 1, lambda x: x + 1
                     )
 
                     if e.forward:
@@ -124,7 +124,14 @@ class WeightedPushRelabel:
                             "blik.marked_inadmissible", 1, lambda x: x + 1
                         )
             else:
-                return self.amount_of_routed_flow(f), f
+                result = self.amount_of_routed_flow(f)
+                benchmark.register("blik.flow", result)
+                updates = benchmark.get_or_default("blik.edge_updates", 0)
+                iters = benchmark.get_or_default("blik.iterations", 1)
+                if iters is not None and updates is not None:
+                    benchmark.register("blik.avg_updates", updates / iters)
+
+                return result, f
 
     def c_f(self, e: Edge):
         f_e = self.f.get(e.forward_edge(), 0)

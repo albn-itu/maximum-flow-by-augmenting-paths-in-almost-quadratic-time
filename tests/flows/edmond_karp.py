@@ -1,5 +1,6 @@
 # Based upon the C++ implementation from here https://cp-algorithms.com/graph/min_cost_flow.html
 from collections import defaultdict, deque
+from src import benchmark
 from tests.flows.utils import TestEdge
 
 
@@ -55,15 +56,40 @@ class MaxFlow:
             flow += new_flow
             cur = t
 
+            edge_updates = 0
             while cur != s:
                 prev = parent[cur]
                 self.capacities[prev][cur] -= new_flow
                 self.capacities[cur][prev] += new_flow
                 cur = prev
 
+                edge_updates += 2
+
+            benchmark.register_or_update(
+                "edmond.edge_updates", edge_updates, lambda x: x + edge_updates
+            )
+            benchmark.register_or_update(
+                "edmond.max_edge_updates",
+                edge_updates,
+                lambda x: edge_updates if edge_updates > x else x,
+            )
+            benchmark.register_or_update(
+                "edmond.min_edge_updates",
+                edge_updates,
+                lambda x: edge_updates if edge_updates < x else x,
+            )
+            benchmark.register_or_update("edmond.iterations", 1, lambda x: x + 1)
+
+        updates = benchmark.get_or_default("edmond.edge_updates", 0)
+        iters = benchmark.get_or_default("edmond.iterations", 1)
+        if iters is not None and updates is not None:
+            benchmark.register("edmond.avg_updates", updates / iters)
+
         return flow
 
     def max_flow(self, s: int, t: int) -> int:
         bfs_flow = self.maxflow_bfs(s, t)
+
+        benchmark.register("edmond.flow", bfs_flow)
 
         return bfs_flow

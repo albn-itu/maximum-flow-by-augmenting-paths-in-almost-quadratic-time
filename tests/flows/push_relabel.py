@@ -1,4 +1,5 @@
 from collections import defaultdict
+from src import benchmark
 from tests.flows.utils import TestEdge
 
 
@@ -12,6 +13,8 @@ class PushRelabel:
 
     height: list[int]
     excess: list[int]
+
+    edge_updates: int
 
     def __init__(self, edges: list[TestEdge], capacities: list[int]):
         """Initialize push-relabel algorithm with n vertices."""
@@ -30,6 +33,27 @@ class PushRelabel:
         self.height = [0] * self.n
         self.excess = [0] * self.n
 
+        self.edge_updates = 0
+
+    def new_iteration(self):
+        """Reset edge update counter."""
+        edge_updates = self.edge_updates
+        benchmark.register_or_update(
+            "push_relabel.edge_updates", edge_updates, lambda x: x + edge_updates
+        )
+        benchmark.register_or_update(
+            "push_relabel.max_edge_updates",
+            edge_updates,
+            lambda x: max(x, edge_updates),
+        )
+        benchmark.register_or_update(
+            "push_relabel.min_edge_updates",
+            edge_updates,
+            lambda x: min(x, edge_updates),
+        )
+        benchmark.register_or_update("push_relabel.iterations", 1, lambda x: x + 1)
+        self.edge_updates = 0
+
     def add_edge(self, u: int, v: int, cap: int) -> None:
         """Add an edge from u to v with capacity cap."""
         self.capacities[u][v] = cap
@@ -42,6 +66,8 @@ class PushRelabel:
         self.excess[u] -= d
         self.excess[v] += d
 
+        self.edge_updates += 2
+
     def relabel(self, u: int) -> None:
         """Relabel vertex u by increasing its height."""
         d = INF
@@ -50,6 +76,10 @@ class PushRelabel:
                 d = min(d, self.height[i])
         if d < INF:
             self.height[u] = d + 1
+
+            benchmark.register_or_update(
+                "push_relabel.highest_level", d + 1, lambda x: max(x, d + 1)
+            )
 
     def find_max_height_vertices(self, s: int, t: int) -> list[int]:
         """Find vertices with maximum height and positive excess flow."""
@@ -76,8 +106,13 @@ class PushRelabel:
             if i != s:
                 self.push(s, i)
 
+        first = True
         # Main loop
         while True:
+            if not first:
+                self.new_iteration()
+            first = False
+
             current = self.find_max_height_vertices(s, t)
             if not current:
                 break
@@ -96,5 +131,11 @@ class PushRelabel:
                 if not pushed:
                     self.relabel(i)
                     break
+
+        total_updates = benchmark.get_or_default("push_relabel.edge_updates", 0)
+        iters = benchmark.get_or_default("push_relabel.iterations", 1)
+        if iters is not None and total_updates is not None:
+            benchmark.register("push_relabel.avg_updates", total_updates / iters)
+        benchmark.register("push_relabel.flow", self.excess[t])
 
         return self.excess[t]

@@ -90,12 +90,14 @@ def end_benchmark():
 def write_benchmark(filename: str | None = None):
     dir = Path("benches")
     dir.mkdir(parents=True, exist_ok=True)
+    with open(dir / ".gitignore", "w") as f:
+        _ = f.write("*")
 
     if filename is None:
         filename = f"benchmark-{int(time.time())}.json"
 
     with open(dir / filename, "w") as f:
-        json.dump(bench_info, f, cls=NpEncoder, indent=4)
+        json.dump(bench_info, f, cls=NpEncoder, indent=4, sort_keys=True)
 
 
 def clear():
