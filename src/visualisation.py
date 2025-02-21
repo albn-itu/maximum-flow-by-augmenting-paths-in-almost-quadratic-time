@@ -8,8 +8,13 @@ if TYPE_CHECKING:
 
 frames = 0
 
+ENABLED = os.environ.get("VISUALISE", False)
+
 def graphviz_frame(instance: "WeightedPushRelabel", kind: str = "", aug_path: set[Edge] | None = None):
     global frames
+
+    if not ENABLED:
+        return
 
     if aug_path is None:
         aug_path = set()
