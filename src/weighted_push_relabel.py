@@ -151,8 +151,17 @@ class WeightedPushRelabel:
             if e in aug_path or e.reversed() in aug_path:
                 color = "blue"
 
-            width = 2 # 1 if self.f[e] == 0 else 2
-            edges.append(f'{e.u} -> {e.v} [label="{self.c_f(e):>2}/{self.c_f(e.reversed()):>2}/{e.c}",color="{color}",penwidth={width}, style="{style}", dir="{dir}", arrowtail="empty"];')
+            attrs = {
+                "label": f"{self.c_f(e)}/{self.c_f(e.reversed())}/{e.c}\\lw={self.w(e)}",
+                "color": color,
+                "style": style,
+                "dir": dir,
+                "arrowtail": "empty",
+                "penwidth": 2
+            }
+
+            attrs_str = ",".join(f'{k}="{v}"' for k, v in attrs.items())
+            edges.append(f'{e.u} -> {e.v} [{attrs_str}];')
 
         with open(path, "w") as f:
             _ = f.write("digraph G {\n")
