@@ -24,6 +24,8 @@ class WeightedPushRelabel:
     outgoing: dict[Vertex, set[Edge]] = field(default_factory=dict)
     incoming: dict[Vertex, set[Edge]] = field(default_factory=dict)
 
+    frames: int = 0
+
     def solve(self) -> tuple[int, dict[Edge, int]]:
         self.outgoing, self.incoming = make_outgoing_incoming(self.G, self.c)
 
@@ -59,14 +61,20 @@ class WeightedPushRelabel:
                 else:
                     admissible.discard(e)
 
+        self.graphviz_frame("Initial")
+
         while True:
             for v in AliveSaturatedVerticesWithNoAdmissibleOutEdges(self):
                 print(f"Relabeling {v}")
                 relabel(v)
 
+            self.graphviz_frame("After relabel")
+
             if (s := self.find_alive_vertex_with_excess()) is not None:
                 P = self.trace_path(s)
                 assert P is not None, "Path not found, but we always expect one."
+
+                self.graphviz_frame("Traced path", aug_path=set(P))
 
                 t = P[-1].end()
 
@@ -86,8 +94,72 @@ class WeightedPushRelabel:
 
                     if c_f(e) == 0:
                         admissible.discard(e)
+
+                self.graphviz_frame("After pushing")
             else:
+                self.graphviz_frame("Final")
+
                 return self.amount_of_routed_flow(f), f
+
+    def graphviz_frame(self, kind: str="", aug_path: set[Edge] | None = None):
+        if aug_path is None:
+            aug_path = set()
+
+        path = f"frames/iter_{self.frames}.dot"
+        self.frames += 1
+
+        all_edges: set[Edge] = set()
+        for v in self.G.V:
+            all_edges.update(self.outgoing[v])
+
+        nodes: set[str] = set()
+        edges: list[str] = list()
+
+        for e in all_edges:
+            def mk_node(v: int):
+                color = "black" if v in self.alive else "firebrick3"
+                style = "solid" if v in self.alive else "dashed"
+                return f'{v} [label="{v} ({self.l[v]:>2})", color="{color}", fontcolor="{color}", style="{style}"];'
+
+            nodes.add(mk_node(e.u))
+            nodes.add(mk_node(e.v))
+
+            if not e.forward:
+                continue
+
+            dir = "forward"
+            if self.c_f(e.reversed()) > 0:
+                if self.c_f(e) == 0:
+                    dir = "back"
+                else:
+                    dir = "both"
+
+            color = "black"
+            style = "solid"
+            if self.c_f(e) == 0:
+                color = "firebrick3"
+            elif self.f[e] > 0:
+                if e in self.admissible:
+                    color = "chartreuse4"
+                else:
+                    color = "goldenrod"
+                    style = "dashed"
+            elif e not in self.admissible:
+                color = "gray"
+                style = "dashed"
+
+            if e in aug_path or e.reversed() in aug_path:
+                color = "blue"
+
+            width = 2 # 1 if self.f[e] == 0 else 2
+            edges.append(f'{e.u} -> {e.v} [label="{self.c_f(e):>2}/{self.c_f(e.reversed()):>2}/{e.c}",color="{color}",penwidth={width}, style="{style}", dir="{dir}", arrowtail="empty"];')
+
+        with open(path, "w") as f:
+            _ = f.write("digraph G {\n")
+            _ = f.write(f'   labelloc="t"; label="{kind}";ordering=out;\n')
+            f.writelines(f"   {node}\n" for node in nodes)
+            f.writelines(f"   {edge}\n" for edge in edges)
+            _ = f.write("}\n")
 
     def c_f(self, e: Edge):
         f_e = self.f.get(e.forward_edge(), 0)
