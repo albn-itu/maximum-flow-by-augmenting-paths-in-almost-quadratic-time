@@ -54,9 +54,11 @@ def run_test(
     expected: int,
     flow_fn: FlowFn,
     weight_fn: Callable[[Edge], int] = lambda e: 1,
+    h: int | None = None,
 ):
     g, c, sources, sinks = parse_input(input, expected)
-    mf, _ = flow_fn(g, c, sources, sinks, weight_fn, len(g.V))
+    h = h if h is not None else len(g.V)
+    mf, _ = flow_fn(g, c, sources, sinks, weight_fn, h)
     assert mf == expected, f"Expected {expected}, got {mf}"
 
 
@@ -64,6 +66,7 @@ def run_test_with_topsort(
     input: str,
     expected: int,
     flow_fn: FlowFn,
+    h: int | None = 10_000,
 ):
     g, *_ = parse_input(input, expected)
 
@@ -73,4 +76,4 @@ def run_test_with_topsort(
     def weight_fn(e: Edge):
         return abs(ranks[e.v] - ranks[e.u])
 
-    return run_test(input, expected, flow_fn, weight_fn)
+    return run_test(input, expected, flow_fn, weight_fn, h)
