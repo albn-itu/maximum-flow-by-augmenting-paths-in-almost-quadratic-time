@@ -58,13 +58,13 @@ class WeightedPushRelabel:
 
             l[v] = min(next_multiple_of(n=l[v], multiple_of=w(e)) for e in edges)
 
-            if l[v] > 9 * h:
-                self.mark_dead(v)
-                return
-
             benchmark.register_or_update(
                 "blik.highest_level", l[v], lambda x: max(x, l[v])
             )
+
+            if l[v] > 9 * h:
+                self.mark_dead(v)
+                return
 
             for e in (e for e in edges if l[v] % w(e) == 0):
                 x, y = e.start(), e.end()
@@ -79,7 +79,6 @@ class WeightedPushRelabel:
             benchmark.register_or_update("blik.iterations", 1, lambda x: x + 1)
 
             for v in AliveSaturatedVerticesWithNoAdmissibleOutEdges(self):
-                print(f"Relabeling {v}")
                 relabel(v)
                 benchmark.register_or_update("blik.relabels", 1, lambda x: x + 1)
 
