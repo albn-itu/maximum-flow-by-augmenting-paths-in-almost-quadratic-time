@@ -22,7 +22,9 @@ class WeightedPushRelabel:
     l: dict[Vertex, int] = field(default_factory=dict)
     alive: set[Vertex] = field(default_factory=set)
     admissible_outgoing: dict[Vertex, set[Edge]] = field(default_factory=dict)
-    alive_vertices_with_no_admissible_out_edges: set[Vertex] = field(default_factory=set)
+    alive_vertices_with_no_admissible_out_edges: set[Vertex] = field(
+        default_factory=set
+    )
 
     # Our state
     outgoing: dict[Vertex, set[Edge]] = field(default_factory=dict)
@@ -52,14 +54,13 @@ class WeightedPushRelabel:
         f, l, c_f = self.f, self.l, self.c_f
 
         def relabel(v: Vertex):
-            if l[v] + 1 > 9 * h:
-                l[v] += 1
-                self.mark_dead(v)
-                return
-
             edges = self.outgoing[v] | self.incoming[v]
 
             l[v] = min(next_multiple_of(n=l[v], multiple_of=w(e)) for e in edges)
+
+            if l[v] > 9 * h:
+                self.mark_dead(v)
+                return
 
             benchmark.register_or_update(
                 "blik.highest_level", l[v], lambda x: max(x, l[v])
@@ -80,8 +81,7 @@ class WeightedPushRelabel:
             for v in AliveSaturatedVerticesWithNoAdmissibleOutEdges(self):
                 print(f"Relabeling {v}")
                 relabel(v)
-                benchmark.register_or_update(
-                    "blik.relabels", 1, lambda x: x + 1)
+                benchmark.register_or_update("blik.relabels", 1, lambda x: x + 1)
 
             graphviz_frame(self, "After relabel")
 
@@ -100,12 +100,10 @@ class WeightedPushRelabel:
                 )
 
                 benchmark.register_or_update(
-                    "blik.max_edge_updates", len(
-                        P), lambda x: max(x, len(P or []))
+                    "blik.max_edge_updates", len(P), lambda x: max(x, len(P or []))
                 )
                 benchmark.register_or_update(
-                    "blik.min_edge_updates", len(
-                        P), lambda x: min(x, len(P or []))
+                    "blik.min_edge_updates", len(P), lambda x: min(x, len(P or []))
                 )
 
                 for e in P:
