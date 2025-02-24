@@ -11,6 +11,7 @@ requires-python = ">=3.12"
 dependencies = [
     "meson>=1.7.0",
     "numpy>=2.2.3",
+    "pytest-profiling>=1.8.1",
 ]
 
 [dependency-groups]
