@@ -66,3 +66,7 @@ def topological_sort(G: Graph) -> list[Vertex]:
             dfs(v)
 
     return sorted_vertices[::-1]
+
+
+def next_multiple_of(n: int, multiple_of: int) -> int:
+    return n + multiple_of - n % multiple_of

@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 
 from src import benchmark
 from .visualisation import graphviz_frame
-from .utils import Edge, Graph, Vertex
+from .utils import Edge, Graph, Vertex, next_multiple_of
 
 
 @dataclass
@@ -52,16 +52,19 @@ class WeightedPushRelabel:
         f, l, c_f = self.f, self.l, self.c_f
 
         def relabel(v: Vertex):
-            l[v] += 1
-            benchmark.register_or_update(
-                "blik.highest_level", l[v], lambda x: max(x, l[v])
-            )
-
-            if l[v] > 9 * h:
+            if l[v] + 1 > 9 * h:
+                l[v] += 1
                 self.mark_dead(v)
                 return
 
             edges = self.outgoing[v] | self.incoming[v]
+
+            l[v] = min(next_multiple_of(n=l[v], multiple_of=w(e)) for e in edges)
+
+            benchmark.register_or_update(
+                "blik.highest_level", l[v], lambda x: max(x, l[v])
+            )
+
             for e in (e for e in edges if l[v] % w(e) == 0):
                 x, y = e.start(), e.end()
                 if l[x] - l[y] >= 2 * w(e) and c_f(e) > 0:
