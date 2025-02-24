@@ -79,7 +79,6 @@ class WeightedPushRelabel:
             benchmark.register_or_update("blik.iterations", 1, lambda x: x + 1)
 
             for v in AliveSaturatedVerticesWithNoAdmissibleOutEdges(self):
-                print(f"Relabeling {v}")
                 relabel(v)
                 benchmark.register_or_update("blik.relabels", 1, lambda x: x + 1)
 
