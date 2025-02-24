@@ -180,7 +180,7 @@ class WeightedPushRelabel:
     # Black box for line 15 of Alg. 1 in the paper. Currently runs in inefficient O(n) time.
     def find_alive_vertex_with_excess(self) -> Vertex | None:
         for s in self.sources:
-            if self.residual_source(s) > 0:
+            if s in self.alive and self.residual_source(s) > 0:
                 return s
         return None
 
