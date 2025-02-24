@@ -91,7 +91,7 @@ def run_test_with_topsort(
     input: str,
     expected: int,
     flow_fn: FlowFn,
-    h: int | None = 10_000,
+    h: int | None = None,
 ):
     g, *_ = parse_input(input, expected)
 
