@@ -29,9 +29,10 @@ class WeightedPushRelabel:
     # Our state
     outgoing: dict[Vertex, set[Edge]] = field(default_factory=dict)
     incoming: dict[Vertex, set[Edge]] = field(default_factory=dict)
+    incident: dict[Vertex, set[Edge]] = field(default_factory=dict)
 
     def solve(self) -> tuple[int, dict[Edge, int]]:
-        self.outgoing, self.incoming = make_outgoing_incoming(self.G, self.c)
+        self.outgoing, self.incoming, self.incident = make_outgoing_incoming(self.G, self.c)
 
         self.f = defaultdict(int)
         self.l = {v: 0 for v in self.G.V}
@@ -54,7 +55,7 @@ class WeightedPushRelabel:
         f, l, c_f = self.f, self.l, self.c_f
 
         def relabel(v: Vertex):
-            edges = self.outgoing[v] | self.incoming[v]
+            edges = self.incident[v]
 
             l[v] = min(next_multiple_of(n=l[v], multiple_of=w(e)) for e in edges)
 
@@ -260,7 +261,7 @@ class AliveSaturatedVerticesWithNoAdmissibleOutEdges:
 
 def make_outgoing_incoming(
     G: Graph, c: list[int]
-) -> tuple[dict[Vertex, set[Edge]], dict[Vertex, set[Edge]]]:
+) -> tuple[dict[Vertex, set[Edge]], dict[Vertex, set[Edge]], dict[Vertex, set[Edge]]]:
     outgoing: dict[Vertex, set[Edge]] = {u: set() for u in G.V}
     incoming: dict[Vertex, set[Edge]] = {u: set() for u in G.V}
 
@@ -273,7 +274,9 @@ def make_outgoing_incoming(
         incoming[u].add(e_rev)
         incoming[v].add(e)
 
-    return outgoing, incoming
+    incident = {u: outgoing[u] | incoming[u] for u in G.V}
+
+    return outgoing, incoming, incident
 
 
 if __name__ == "__main__":
