@@ -2,6 +2,7 @@ import os
 from src import benchmark
 from src.weighted_push_relabel import weighted_push_relabel
 from tests.utils import (
+    bench,
     run_test as run_test_str,
     run_test_with_topsort,
     wrap_correct,
@@ -152,4 +153,12 @@ def test_flow_maxflow_large(input_file: str, expected: int):
 @pytest.mark.maxflow
 @pytest.mark.parametrize("input_file,expected", get_maxflow_files(False))
 def test_correct_maxflow_large(input_file: str, expected: int):
+    run_test(input_file, expected, wrap_correct)
+
+
+@pytest.mark.benchmark
+@pytest.mark.parametrize("input_file,expected", DAG_INPUT_EXPECTED)
+@bench
+def test_benchmark_dag(input_file: str, expected: int):
+    run_test_with_topsort(read_file(input_file), expected, weighted_push_relabel)
     run_test(input_file, expected, wrap_correct)
