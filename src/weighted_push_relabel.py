@@ -21,13 +21,12 @@ class WeightedPushRelabel:
     f: dict[Edge, int] = field(default_factory=defaultdict[Edge, int])
     l: dict[Vertex, int] = field(default_factory=dict)
     alive: set[Vertex] = field(default_factory=set)
-    admissible: set[Edge] = field(default_factory=set)
+    admissible_outgoing: dict[Vertex, set[Edge]] = field(default_factory=dict)
+    alive_vertices_with_no_admissible_out_edges: set[Vertex] = field(default_factory=set)
 
     # Our state
     outgoing: dict[Vertex, set[Edge]] = field(default_factory=dict)
     incoming: dict[Vertex, set[Edge]] = field(default_factory=dict)
-
-    frames: int = 0
 
     def solve(self) -> tuple[int, dict[Edge, int]]:
         self.outgoing, self.incoming = make_outgoing_incoming(self.G, self.c)
@@ -35,7 +34,8 @@ class WeightedPushRelabel:
         self.f = defaultdict(int)
         self.l = {v: 0 for v in self.G.V}
         self.alive = set(self.G.V)
-        self.admissible = set()
+        self.admissible_outgoing = defaultdict(set)
+        self.alive_vertices_with_no_admissible_out_edges = set(self.G.V)
 
         print(f"Initial state: {self}")
         benchmark.register(
@@ -49,13 +49,7 @@ class WeightedPushRelabel:
 
         # Shorthands
         w, h = self.w, self.h
-        f, l, alive, admissible, c_f = (
-            self.f,
-            self.l,
-            self.alive,
-            self.admissible,
-            self.c_f,
-        )
+        f, l, c_f = self.f, self.l, self.c_f
 
         def relabel(v: Vertex):
             l[v] += 1
@@ -64,24 +58,16 @@ class WeightedPushRelabel:
             )
 
             if l[v] > 9 * h:
-                alive.remove(v)
-                benchmark.register_or_update(
-                    "blik.marked_dead", 1, lambda x: x + 1)
+                self.mark_dead(v)
                 return
 
-            edges = (self.outgoing[v]).union(self.incoming[v])
+            edges = self.outgoing[v] | self.incoming[v]
             for e in (e for e in edges if l[v] % w(e) == 0):
                 x, y = e.start(), e.end()
                 if l[x] - l[y] >= 2 * w(e) and c_f(e) > 0:
-                    admissible.add(e)
-                    benchmark.register_or_update(
-                        "blik.marked_admissible", 1, lambda x: x + 1
-                    )
+                    self.mark_admissible(e)
                 else:
-                    admissible.discard(e)
-                    benchmark.register_or_update(
-                        "blik.marked_inadmissible", 1, lambda x: x + 1
-                    )
+                    self.mark_inadmissible(e)
 
         graphviz_frame(self, "Initial")
 
@@ -132,10 +118,7 @@ class WeightedPushRelabel:
                     # "Adjust ..." - is this automatically done via c_f()?
 
                     if c_f(e) == 0:
-                        admissible.discard(e)
-                        benchmark.register_or_update(
-                            "blik.marked_inadmissible", 1, lambda x: x + 1
-                        )
+                        self.mark_inadmissible(e)
 
                 graphviz_frame(self, "After pushing")
             else:
@@ -157,6 +140,22 @@ class WeightedPushRelabel:
         else:
             return f_e
 
+    def mark_admissible(self, e: Edge):
+        self.admissible_outgoing[e.start()].add(e)
+        benchmark.register_or_update("blik.marked_admissible", 1, lambda x: x + 1)
+        self.alive_vertices_with_no_admissible_out_edges.discard(e.start())
+
+    def mark_inadmissible(self, e: Edge):
+        self.admissible_outgoing[e.start()].discard(e)
+        benchmark.register_or_update("blik.marked_inadmissible", 1, lambda x: x + 1)
+        if len(self.admissible_outgoing[e.start()]) == 0 and e.start() in self.alive:
+            self.alive_vertices_with_no_admissible_out_edges.add(e.start())
+
+    def mark_dead(self, v: Vertex):
+        self.alive.remove(v)
+        self.alive_vertices_with_no_admissible_out_edges.discard(v)
+        benchmark.register_or_update("blik.marked_dead", 1, lambda x: x + 1)
+
     def absorption(self, v: Vertex) -> int:
         return min(self.net_flow(v) + self.sources[v], self.sinks[v])
 
@@ -177,7 +176,7 @@ class WeightedPushRelabel:
         """Corresponds to ∇_f(t)"""
         return self.sinks[v] - self.absorption(v)
 
-    # Black box for line 15 of Alg. 1 in the paper. Currently runs in inefficient O(n) time.
+    # Black box for line 15 of Alg. 1 in the paper.
     def find_alive_vertex_with_excess(self) -> Vertex | None:
         for s in self.sources:
             if s in self.alive and self.residual_source(s) > 0:
@@ -202,9 +201,7 @@ class WeightedPushRelabel:
                 path.reverse()
                 return path
 
-            for e in self.outgoing[v]:
-                if e not in self.admissible:
-                    continue
+            for e in self.admissible_outgoing[v]:
                 if e.end() in visited:
                     continue
 
@@ -243,40 +240,20 @@ def weighted_push_relabel(
     return WeightedPushRelabel(G, c, _sources, _sinks, w, h).solve()
 
 
-# Black box for line 13 of Alg. 1 in the paper. Currently runs in inefficient O(n^2) time.
-# TODO: Make fast.
+# Black box for line 13 of Alg. 1 in the paper.
 class AliveSaturatedVerticesWithNoAdmissibleOutEdges:
     instance: WeightedPushRelabel
-
-    # Overriden in __iter__
-    cur_iteration: list[Vertex] = []
-    returned_some: bool = False
 
     def __init__(self, instance: WeightedPushRelabel):
         self.instance = instance
 
     def __iter__(self):
-        self.cur_iteration = list(self.instance.alive)
-        self.returned_some = False
         return self
 
     def __next__(self) -> Vertex:
-        while self.cur_iteration:
-            v = self.cur_iteration.pop()
-
-            is_saturated = self.instance.residual_sink(v) == 0
-            has_admissible = any(
-                e in self.instance.admissible for e in self.instance.outgoing[v]
-            )
-
-            if is_saturated and not has_admissible:
-                self.returned_some = True
+        for v in self.instance.alive_vertices_with_no_admissible_out_edges:
+            if self.instance.residual_sink(v) == 0:
                 return v
-
-        if self.returned_some:
-            self.cur_iteration = list(self.instance.alive)
-            self.returned_some = False
-            return self.__next__()
 
         raise StopIteration
 

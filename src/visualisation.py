@@ -53,12 +53,12 @@ def graphviz_frame(instance: "WeightedPushRelabel", kind: str = "", aug_path: se
         if instance.c_f(e) == 0:
             color = "firebrick3"
         elif instance.f[e] > 0:
-            if e in instance.admissible:
+            if e in instance.admissible_outgoing[e.start()]:
                 color = "chartreuse4"
             else:
                 color = "goldenrod"
                 style = "dashed"
-        elif e not in instance.admissible:
+        elif e not in instance.admissible_outgoing[e.start()]:
             color = "gray"
             style = "dashed"
 
