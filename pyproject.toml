@@ -10,6 +10,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "meson>=1.7.0",
+    "networkx>=3.4.2",
     "numpy>=2.2.3",
     "pytest-profiling>=1.8.1",
 ]
