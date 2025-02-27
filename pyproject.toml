@@ -34,6 +34,7 @@ markers = [
     "notdag: marks tests as not directed acyclic graphs (deselect with '-m \"not notdag\"')",
     "w_top_sort: uses a topological-sort based weight function",
     "benchmark: marks tests as benchmarks",
+    "expander: graphs with expanders",
 ]
 
 [tool.ruff.lint]
