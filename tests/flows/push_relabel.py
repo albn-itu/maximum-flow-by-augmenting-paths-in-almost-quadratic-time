@@ -70,6 +70,8 @@ class PushRelabel:
 
     def relabel(self, u: int) -> None:
         """Relabel vertex u by increasing its height."""
+        benchmark.register_or_update("push_relabel.relabels", 1, lambda x: x + 1)
+
         d = INF
         for i in range(self.n):
             if self.capacities[u][i] - self.flow[u][i] > 0:
