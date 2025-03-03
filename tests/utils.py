@@ -10,7 +10,10 @@ Param = ParamSpec("Param")
 RetType = TypeVar("RetType")
 
 
-def bench(func: Callable[Param, RetType]) -> Callable[Param, RetType]:
+def bench(
+    func: Callable[Param, RetType],
+    extra_args: list[tuple[str, benchmark.BenchValue]] | None = None,
+) -> Callable[Param, RetType]:
     print("benchmark")
 
     @wraps(func)
@@ -18,6 +21,9 @@ def bench(func: Callable[Param, RetType]) -> Callable[Param, RetType]:
         test_name = os.environ.get("PYTEST_CURRENT_TEST") or "unknown"
         benchmark.start_benchmark(test_name)
         benchmark.register("bench_config.name", test_name)
+        if extra_args:
+            for name, value in extra_args:
+                benchmark.register(name, value)
 
         res = func(*args, **kwargs)
 
@@ -80,6 +86,8 @@ def run_test(
     weight_fn: Callable[[Edge], int] = lambda e: 1,
     h: int | None = None,
 ):
+    benchmark.register_or_update("bench_config.top_sort", False, lambda x: x)
+
     g, c, sources, sinks = parse_input(input, expected)
     h = h if h is not None else len(g.V)
     mf, _ = flow_fn(g, c, sources, sinks, weight_fn, h)
@@ -93,6 +101,8 @@ def run_test_with_topsort(
     flow_fn: FlowFn,
     h: int | None = None,
 ):
+    benchmark.register("bench_config.top_sort", True)
+
     g, *_ = parse_input(input, expected)
 
     ordering = topological_sort(g)
