@@ -172,12 +172,14 @@ function initializeDisplay() {
   updateDisplay();
 }
 
+const STROKE_WIDTH = 2;
+
 // update the display based on the forces (but not positions)
 function updateDisplay() {
   node
     .attr("r", forceProperties.collide.radius)
     .attr("stroke", "black")
-    .attr("stroke-width", 2)
+    .attr("stroke-width", STROKE_WIDTH)
     .attr("fill", "white");
 
   link
@@ -207,7 +209,7 @@ function ticked() {
   // Some vector math to have the tip on the edge of the vertex circle instead of
   // at the center of it. For the sake of arrow heads.
   const targetBorder = (d) => {
-    const nodeRadius = 10;
+    const nodeRadius = +forceProperties.collide.radius + STROKE_WIDTH + 1;
     return diff(d.target, scale(free([d.source, d.target]), nodeRadius));
   };
 
