@@ -8,7 +8,7 @@ let link, node;
 let graph;
 
 // load the data
-d3.json("miserables.json", (error, _graph) => {
+d3.json("expander.json", (error, _graph) => {
   if (error) throw error;
 
   graph = _graph;
@@ -204,6 +204,28 @@ const scale = (vector, scalar) => prod(unit(vector), scalar);
 
 const free = ([coord1, coord2]) => diff(coord2, coord1);
 
+const colors = [
+  "#FF6633",
+  "#FFB399",
+  "#FF33FF",
+  "#FFFF99",
+  "#00B3E6",
+  "#E6B333",
+  "#3366E6",
+  "#999966",
+  "#809980",
+  "#E6FF80",
+  "#1AFF33",
+  "#999933",
+  "#FF3380",
+  "#CCCC00",
+  "#66E64D",
+  "#4D80CC",
+  "#FF4D4D",
+  "#99E6E6",
+  "#6666FF",
+];
+
 // update the display positions after each simulation tick
 function ticked() {
   // Some vector math to have the tip on the edge of the vertex circle instead of
@@ -219,7 +241,25 @@ function ticked() {
     .attr("x2", (d) => targetBorder(d).x)
     .attr("y2", (d) => targetBorder(d).y);
 
-  node.attr("cx", (d) => d.x).attr("cy", (d) => d.y);
+  const SINK_COLOR = "red";
+  const SOURCE_COLOR = "blue";
+  const EXPANDER_COLOR = "green";
+
+  node
+    .attr("cx", (d) => d.x)
+    .attr("cy", (d) => d.y)
+    .attr("stroke", (d) => {
+      return d.source ? SOURCE_COLOR : d.sink ? SINK_COLOR : "black";
+    })
+    .attr("fill", (d) => {
+      return d.source
+        ? SOURCE_COLOR
+        : d.sink
+          ? SINK_COLOR
+          : d.group
+            ? colors[d.group]
+            : "white";
+    });
 
   d3.select("#alpha_value").style("flex-basis", simulation.alpha() * 100 + "%");
 }

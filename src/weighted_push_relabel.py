@@ -3,7 +3,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from src import benchmark
-from .visualisation import graphviz_frame
+from .visualisation import export_custom_frame, graphviz_frame
 from .utils import Edge, Graph, Vertex, next_multiple_of
 
 
@@ -75,6 +75,8 @@ class WeightedPushRelabel:
                     self.mark_inadmissible(e)
 
         graphviz_frame(self, "Initial")
+
+        export_custom_frame(self)
 
         while True:
             benchmark.register_or_update("blik.iterations", 1, lambda x: x + 1)

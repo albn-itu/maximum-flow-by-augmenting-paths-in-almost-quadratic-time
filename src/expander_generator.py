@@ -189,6 +189,34 @@ class ConstructedInstance:
 
         return '\n'.join(output)
 
+    def export_custom(self):
+        output = {
+            "nodes": [],
+            "links": []
+        }
+
+        output["nodes"].append({ "id": self.s, "source": True })
+        output["nodes"].append({ "id": self.t, "sink": True })
+
+        for r in self.rank_vertices:
+            for v in r:
+                output["nodes"].append({ "id": v })
+
+        for i, G in enumerate(self.expanders):
+            for u in G.nodes:
+                output["nodes"].append({
+                    "id": u,
+                    "group": i+1,
+                })
+
+            for u, v, c in G.edges(data="weight"):
+                output["links"].append({ "source": u, "target": v, "value": c })
+
+        for u, v, c in self.dag_edges:
+            output["links"].append({ "source": u, "target": v, "value": c })
+
+        return output
+
 
 if __name__ == "__main__":
     instance = ConstructedInstance.new()

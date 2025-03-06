@@ -1,5 +1,6 @@
 from src.utils import Edge
 import os
+import json
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -9,6 +10,7 @@ if TYPE_CHECKING:
 frames = 0
 
 ENABLED = os.environ.get("VISUALISE", False)
+
 
 def graphviz_frame(instance: "WeightedPushRelabel", kind: str = "", aug_path: set[Edge] | None = None):
     global frames
@@ -83,3 +85,38 @@ def graphviz_frame(instance: "WeightedPushRelabel", kind: str = "", aug_path: se
         f.writelines(f"   {node}\n" for node in nodes)
         f.writelines(f"   {edge}\n" for edge in edges)
         _ = f.write("}\n")
+
+
+def export_custom_frame(instance: "WeightedPushRelabel"):
+    global frames
+
+    if not ENABLED:
+        return
+
+    path = f"visualisation/iter_d3_{frames}.json"
+    frames += 1
+
+    all_edges: set[Edge] = set()
+    for v in instance.G.V:
+        all_edges.update(instance.outgoing[v])
+
+    output = {
+        "nodes": [],
+        "links": []
+    }
+
+    for e in all_edges:
+        if not e.forward:
+            continue
+        output["links"].append({ "source": e.u, "target": e.v, "value": 1 })
+
+    for v in instance.G.V:
+        output["nodes"].append({
+            "id": v,
+            "group": 1,
+            "source": instance.sources[v] > 0,
+            "sink": instance.sinks[v] > 0,
+        })
+
+    with open(path, "w") as f:
+        json.dump(output, f, indent=2)
