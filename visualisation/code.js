@@ -130,21 +130,21 @@ function initializeDisplay() {
   svg
     .append("svg:defs")
     .append("svg:marker")
-    .attr("id", "triangle")
-    .attr("refX", 6)
-    .attr("refY", 6)
-    .attr("markerWidth", 30)
-    .attr("markerHeight", 30)
+    .attr("id", "arrowhead")
+    .attr("refX", 3)
+    .attr("refY", 3)
+    .attr("markerWidth", 50)
+    .attr("markerHeight", 50)
     .attr("orient", "auto")
     .append("path")
-    .attr("d", "M 0 0 12 6 0 12 3 6")
-    .style("fill", "black");
+    .style("fill", "black")
+    .attr("d", "M 0 0 6 3 0 6 1.5 3");
 
   // set the data and properties of link lines
   link = svg
     .append("g")
     .attr("class", "links")
-    .attr("marker-end", "url(#triangle)")
+    .attr("marker-end", "url(#arrowhead)")
     .selectAll("line")
     .data(graph.links)
     .enter()
@@ -176,26 +176,46 @@ function initializeDisplay() {
 function updateDisplay() {
   node
     .attr("r", forceProperties.collide.radius)
-    .attr("stroke", forceProperties.charge.strength > 0 ? "blue" : "red")
-    .attr(
-      "stroke-width",
-      forceProperties.charge.enabled == false
-        ? 0
-        : Math.abs(forceProperties.charge.strength) / 15,
-    );
+    .attr("stroke", "black")
+    .attr("stroke-width", 2)
+    .attr("fill", "white");
 
   link
     .attr("stroke-width", forceProperties.link.enabled ? 1 : 0.5)
     .attr("opacity", forceProperties.link.enabled ? 1 : 0);
 }
 
+// Some useful vector math functions
+const length = ({ x, y }) => Math.sqrt(x * x + y * y);
+const sum = ({ x: x1, y: y1 }, { x: x2, y: y2 }) => ({
+  x: x1 + x2,
+  y: y1 + y2,
+});
+const diff = ({ x: x1, y: y1 }, { x: x2, y: y2 }) => ({
+  x: x1 - x2,
+  y: y1 - y2,
+});
+const prod = ({ x, y }, scalar) => ({ x: x * scalar, y: y * scalar });
+const div = ({ x, y }, scalar) => ({ x: x / scalar, y: y / scalar });
+const unit = (vector) => div(vector, length(vector));
+const scale = (vector, scalar) => prod(unit(vector), scalar);
+
+const free = ([coord1, coord2]) => diff(coord2, coord1);
+
 // update the display positions after each simulation tick
 function ticked() {
+  // Some vector math to have the tip on the edge of the vertex circle instead of
+  // at the center of it. For the sake of arrow heads.
+  const targetBorder = (d) => {
+    const nodeRadius = 10;
+    return diff(d.target, scale(free([d.source, d.target]), nodeRadius));
+  };
+
   link
-    .attr("x1", (d) => d.source.x)
-    .attr("y1", (d) => d.source.y)
-    .attr("x2", (d) => d.target.x)
-    .attr("y2", (d) => d.target.y);
+    .attr("x1", ({ source }) => source.x)
+    .attr("y1", ({ source }) => source.y)
+    .attr("x2", (d) => targetBorder(d).x)
+    .attr("y2", (d) => targetBorder(d).y);
 
   node.attr("cx", (d) => d.x).attr("cy", (d) => d.y);
 
