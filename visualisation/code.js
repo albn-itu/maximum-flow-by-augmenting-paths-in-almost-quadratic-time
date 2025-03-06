@@ -1,16 +1,18 @@
-var svg = d3.select("svg"),
+const svg = d3.select("svg"),
   width = +svg.node().getBoundingClientRect().width,
   height = +svg.node().getBoundingClientRect().height;
 
 // svg objects
-var link, node;
+let link, node;
 // the data - an object with nodes and links
-var graph;
+let graph;
 
 // load the data
-d3.json("miserables.json", function (error, _graph) {
+d3.json("miserables.json", (error, _graph) => {
   if (error) throw error;
+
   graph = _graph;
+
   initializeDisplay();
   initializeSimulation();
 });
@@ -18,7 +20,7 @@ d3.json("miserables.json", function (error, _graph) {
 //////////// FORCE SIMULATION ////////////
 
 // force simulator
-var simulation = d3.forceSimulation();
+let simulation = d3.forceSimulation();
 
 // set up the simulation and event to update locations after each tick
 function initializeSimulation() {
@@ -72,6 +74,7 @@ function initializeForces() {
     .force("center", d3.forceCenter())
     .force("forceX", d3.forceX())
     .force("forceY", d3.forceY());
+
   // apply properties to each of the forces
   updateForces();
 }
@@ -83,11 +86,13 @@ function updateForces() {
     .force("center")
     .x(width * forceProperties.center.x)
     .y(height * forceProperties.center.y);
+
   simulation
     .force("charge")
     .strength(forceProperties.charge.strength * forceProperties.charge.enabled)
     .distanceMin(forceProperties.charge.distanceMin)
     .distanceMax(forceProperties.charge.distanceMax);
+
   simulation
     .force("collide")
     .strength(
@@ -95,19 +100,20 @@ function updateForces() {
     )
     .radius(forceProperties.collide.radius)
     .iterations(forceProperties.collide.iterations);
+
   simulation
     .force("forceX")
     .strength(forceProperties.forceX.strength * forceProperties.forceX.enabled)
     .x(width * forceProperties.forceX.x);
+
   simulation
     .force("forceY")
     .strength(forceProperties.forceY.strength * forceProperties.forceY.enabled)
     .y(height * forceProperties.forceY.y);
+
   simulation
     .force("link")
-    .id(function (d) {
-      return d.id;
-    })
+    .id((d) => d.id)
     .distance(forceProperties.link.distance)
     .iterations(forceProperties.link.iterations)
     .links(forceProperties.link.enabled ? graph.links : []);
@@ -161,9 +167,7 @@ function initializeDisplay() {
     );
 
   // node tooltip
-  node.append("title").text(function (d) {
-    return d.id;
-  });
+  node.append("title").text((d) => d.id);
   // visualize the graph
   updateDisplay();
 }
@@ -188,26 +192,13 @@ function updateDisplay() {
 // update the display positions after each simulation tick
 function ticked() {
   link
-    .attr("x1", function (d) {
-      return d.source.x;
-    })
-    .attr("y1", function (d) {
-      return d.source.y;
-    })
-    .attr("x2", function (d) {
-      return d.target.x;
-    })
-    .attr("y2", function (d) {
-      return d.target.y;
-    });
+    .attr("x1", (d) => d.source.x)
+    .attr("y1", (d) => d.source.y)
+    .attr("x2", (d) => d.target.x)
+    .attr("y2", (d) => d.target.y);
 
-  node
-    .attr("cx", function (d) {
-      return d.x;
-    })
-    .attr("cy", function (d) {
-      return d.y;
-    });
+  node.attr("cx", (d) => d.x).attr("cy", (d) => d.y);
+
   d3.select("#alpha_value").style("flex-basis", simulation.alpha() * 100 + "%");
 }
 
@@ -231,7 +222,7 @@ function dragended(d) {
 }
 
 // update size-related forces
-d3.select(window).on("resize", function () {
+d3.select(window).on("resize", () => {
   width = +svg.node().getBoundingClientRect().width;
   height = +svg.node().getBoundingClientRect().height;
   updateForces();
