@@ -159,7 +159,7 @@ function initializeDisplay() {
     .attr("orient", "auto")
     .append("path")
     .style("fill", EDGE_COLOR)
-    .attr("d", "M 0 0 6 3 0 6 1.5 3");
+    .attr("d", "M 0 0 6 3 0 6");
 
   // set the data and properties of link lines
   link = svg
@@ -332,14 +332,7 @@ function ticked() {
   edgepaths.attr(
     "d",
     (d) =>
-      "M " +
-      d.source.x +
-      " " +
-      d.source.y +
-      " L " +
-      d.target.x +
-      " " +
-      d.target.y,
+      `M ${d.source.x} ${d.source.y} L ${targetBorder(d).x} ${targetBorder(d).y}`,
   );
 }
 
