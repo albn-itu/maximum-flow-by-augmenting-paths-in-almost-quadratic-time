@@ -3,7 +3,7 @@ const svg = d3.select("svg"),
   height = +svg.node().getBoundingClientRect().height;
 
 // svg objects
-let link, node;
+let link, node, edgeLabel, edgepaths, edgelabels;
 // the data - an object with nodes and links
 let graph;
 
@@ -16,6 +16,8 @@ d3.json("expander.json", (error, _graph) => {
   initializeDisplay();
   initializeSimulation();
 });
+
+const EDGE_COLOR = "#aaa";
 
 //////////// FORCE SIMULATION ////////////
 
@@ -30,8 +32,10 @@ function initializeSimulation() {
 }
 
 const config = {
+  enableEdgeLabels: false,
   contractSameGroupEdges: false,
 };
+
 // values for all forces
 forceProperties = {
   center: {
@@ -148,18 +152,48 @@ function initializeDisplay() {
     .attr("markerHeight", 50)
     .attr("orient", "auto")
     .append("path")
-    .style("fill", "black")
+    .style("fill", EDGE_COLOR)
     .attr("d", "M 0 0 6 3 0 6 1.5 3");
 
   // set the data and properties of link lines
   link = svg
-    .append("g")
-    .attr("class", "links")
-    .attr("marker-end", "url(#arrowhead)")
-    .selectAll("line")
+    .selectAll(".links")
     .data(graph.links)
     .enter()
-    .append("line");
+    .append("line")
+    .attr("class", "links")
+    .attr("marker-end", "url(#arrowhead)");
+
+  edgepaths = svg
+    .selectAll(".edgepath") //make path go along with the link provide position for link labels
+    .data(graph.links)
+    .enter()
+    .append("path")
+    .attr("class", "edgepath")
+    .attr("fill-opacity", 0)
+    .attr("stroke-opacity", 0)
+    .attr("id", function (d, i) {
+      return "edgepath" + i;
+    })
+    .style("pointer-events", "none");
+
+  edgelabels = svg
+    .selectAll(".edgelabel")
+    .data(graph.links)
+    .enter()
+    .append("text")
+    .style("pointer-events", "none")
+    .attr("class", "edgelabel")
+    .attr("id", function (d, i) {
+      return "edgelabel" + i;
+    })
+    .attr("font-size", 10)
+    .attr("fill", EDGE_COLOR)
+    .append("textPath") //To render text along the shape of a <path>, enclose the text in a <textPath> element that has an href attribute with a reference to the <path> element.
+    .attr("xlink:href", (d, i) => "#edgepath" + i)
+    .style("text-anchor", "middle")
+    .style("pointer-events", "none")
+    .attr("startOffset", "50%");
 
   // set the data and properties of node circles
   node = svg
@@ -195,7 +229,9 @@ function updateDisplay() {
 
   link
     .attr("stroke-width", forceProperties.link.enabled ? 1 : 0.5)
-    .attr("opacity", forceProperties.link.enabled ? 1 : 0);
+    .attr("stroke", EDGE_COLOR)
+    .attr("opacity", forceProperties.link.enabled ? 1 : 0)
+    .attr("text-anchor", "middle");
 }
 
 // Some useful vector math functions
@@ -254,7 +290,6 @@ function ticked() {
 
   const SINK_COLOR = "red";
   const SOURCE_COLOR = "blue";
-  const EXPANDER_COLOR = "green";
 
   node
     .attr("cx", (d) => d.x)
@@ -273,6 +308,23 @@ function ticked() {
     });
 
   d3.select("#alpha_value").style("flex-basis", simulation.alpha() * 100 + "%");
+
+  edgepaths.attr(
+    "d",
+    (d) =>
+      "M " +
+      d.source.x +
+      " " +
+      d.source.y +
+      " L " +
+      d.target.x +
+      " " +
+      d.target.y,
+  );
+
+  edgelabels
+    .attr("display", config.enableEdgeLabels ? "initial" : "none")
+    .text((d) => d.value);
 }
 
 //////////// UI EVENTS ////////////

@@ -49,6 +49,13 @@ svg {
   <div class="force">
     <p>
       <label>
+        <input type="checkbox" onchange="config.enableEdgeLabels = this.checked; updateAll();">
+        edge labels
+      </label>
+      Displays labels on edges. Will slow down simulation.
+    </p>
+    <p>
+      <label>
         <input type="checkbox" onchange="config.contractSameGroupEdges = this.checked; updateAll();">
         contract clusters
       </label>
