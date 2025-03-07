@@ -146,6 +146,16 @@ const nodeRadius = (d) => {
   return d.source || d.sink ? r * 1.5 : r;
 };
 
+const nodeColor = (d) => {
+  return d.source
+    ? SOURCE_COLOR
+    : d.sink
+      ? SINK_COLOR
+      : d.group
+        ? colors[d.group]
+        : "white";
+};
+
 // generate the svg objects and force simulation
 function initializeDisplay() {
   svg
@@ -221,7 +231,7 @@ function initializeDisplay() {
     .attr("r", nodeRadius)
     .attr("stroke", "black")
     .attr("stroke-width", STROKE_WIDTH)
-    .attr("fill", "white");
+    .attr("fill", nodeColor);
 
   node.append("title").text((d) => d.id);
 
@@ -241,22 +251,6 @@ const STROKE_WIDTH = 2;
 // update the display based on the forces (but not positions)
 function updateDisplay() {
   nodeCirc.attr("r", nodeRadius);
-
-  const nodeColor = (d) => {
-    return d.source
-      ? SOURCE_COLOR
-      : d.sink
-        ? SINK_COLOR
-        : d.group
-          ? colors[d.group]
-          : "white";
-  };
-
-  nodeCirc
-    .attr("stroke", (d) => {
-      return d.source ? SOURCE_COLOR : d.sink ? SINK_COLOR : "black";
-    })
-    .attr("fill", nodeColor);
 
   nodeLabel.attr("display", config.enableVertexLabels ? "initial" : "none");
 
