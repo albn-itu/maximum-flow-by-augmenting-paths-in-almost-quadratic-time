@@ -46,6 +46,16 @@ svg {
 </head>
 <body>
 <div class="controls">
+  <div class="force">
+    <p>
+      <label>
+        <input type="checkbox" onchange="config.contractSameGroupEdges = this.checked; updateAll();">
+        contract clusters
+      </label>
+      Contracts edges between nodes in the same group.
+    </p>
+  </div>
+
   <div class="force alpha">
     <p><label>alpha</label> Simulation activity</p>
     <div class="alpha_bar" onclick="updateAll();"><div id="alpha_value"></div></div>

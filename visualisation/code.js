@@ -29,6 +29,9 @@ function initializeSimulation() {
   simulation.on("tick", ticked);
 }
 
+const config = {
+  contractSameGroupEdges: false,
+};
 // values for all forces
 forceProperties = {
   center: {
@@ -114,7 +117,15 @@ function updateForces() {
   simulation
     .force("link")
     .id((d) => d.id)
-    .distance(forceProperties.link.distance)
+    .distance((d) => {
+      const dist = forceProperties.link.distance;
+      if (config.contractSameGroupEdges) {
+        const isCluster =
+          d.source.group > 0 && d.source.group === d.target.group;
+        return isCluster ? dist * 0.4 : dist;
+      }
+      return dist;
+    })
     .iterations(forceProperties.link.iterations)
     .links(forceProperties.link.enabled ? graph.links : []);
 
