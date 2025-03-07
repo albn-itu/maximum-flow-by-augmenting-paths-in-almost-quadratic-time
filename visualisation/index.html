@@ -49,10 +49,17 @@ svg {
   <div class="force">
     <p>
       <label>
-        <input type="checkbox" onchange="config.enableEdgeLabels = this.checked; updateAll();">
+        <input type="checkbox" onchange="config.enableEdgeLabels = this.checked; updateDisplay();">
         edge labels
       </label>
       Displays labels on edges. Will slow down simulation.
+    </p>
+    <p>
+      <label>
+        <input type="checkbox" checked onchange="config.enableVertexLabels = this.checked; updateDisplay();">
+        vertex labels
+      </label>
+      Displays labels on vertices. Will slow down simulation.
     </p>
     <p>
       <label>
@@ -109,8 +116,8 @@ svg {
     </label>
     <label title="Size of nodes">
       radius
-      <output id="collide_radiusSliderOutput">5</output>
-      <input type="range" min="0" max="100" value="5" step="1" oninput="d3.select('#collide_radiusSliderOutput').text(value); forceProperties.collide.radius=value; updateAll();">
+      <output id="collide_radiusSliderOutput">8</output>
+      <input type="range" min="0" max="100" value="8" step="1" oninput="d3.select('#collide_radiusSliderOutput').text(value); forceProperties.collide.radius=value; updateAll();">
     </label>
     <label title="Higher values increase rigidity of the nodes (WARNING: high values are computationally expensive)">
       iterations

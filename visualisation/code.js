@@ -3,7 +3,7 @@ let svg = d3.select("svg"),
   height = +svg.node().getBoundingClientRect().height;
 
 // svg objects
-let link, node, edgeLabel, edgepaths, edgelabels;
+let link, node, nodeCirc, nodeLabel, edgeLabel, edgepaths, edgelabels;
 // the data - an object with nodes and links
 let graph;
 
@@ -17,6 +17,8 @@ d3.json("expander.json", (error, _graph) => {
   initializeSimulation();
 });
 
+const SINK_COLOR = "red";
+const SOURCE_COLOR = "#00ffff";
 const EDGE_COLOR = "#aaa";
 
 //////////// FORCE SIMULATION ////////////
@@ -33,6 +35,7 @@ function initializeSimulation() {
 
 const config = {
   enableEdgeLabels: false,
+  enableVertexLabels: true,
   contractSameGroupEdges: false,
 };
 
@@ -52,7 +55,7 @@ forceProperties = {
     enabled: true,
     strength: 0.7,
     iterations: 1,
-    radius: 5,
+    radius: 8,
   },
   forceX: {
     enabled: false,
@@ -124,8 +127,7 @@ function updateForces() {
     .distance((d) => {
       const dist = forceProperties.link.distance;
       if (config.contractSameGroupEdges) {
-        const isCluster =
-          d.source.group > 0 && d.source.group === d.target.group;
+        const isCluster = d.source.group && d.source.group === d.target.group;
         return isCluster ? dist * 0.4 : dist;
       }
       return dist;
@@ -139,6 +141,10 @@ function updateForces() {
 }
 
 //////////// DISPLAY ////////////
+const nodeRadius = (d) => {
+  const r = forceProperties.collide.radius;
+  return d.source || d.sink ? r * 1.5 : r;
+};
 
 // generate the svg objects and force simulation
 function initializeDisplay() {
@@ -197,12 +203,11 @@ function initializeDisplay() {
 
   // set the data and properties of node circles
   node = svg
-    .append("g")
-    .attr("class", "nodes")
-    .selectAll("circle")
+    .selectAll(".nodes")
     .data(graph.nodes)
     .enter()
-    .append("circle")
+    .append("g")
+    .attr("class", "nodes")
     .call(
       d3
         .drag()
@@ -211,8 +216,22 @@ function initializeDisplay() {
         .on("end", dragended),
     );
 
-  // node tooltip
+  nodeCirc = node
+    .append("circle")
+    .attr("r", nodeRadius)
+    .attr("stroke", "black")
+    .attr("stroke-width", STROKE_WIDTH)
+    .attr("fill", "white");
+
   node.append("title").text((d) => d.id);
+
+  nodeLabel = node
+    .append("text")
+    .text((d) => d.id)
+    .attr("font-size", 8)
+    .attr("text-anchor", "middle")
+    .attr("dy", 3);
+
   // visualize the graph
   updateDisplay();
 }
@@ -221,17 +240,35 @@ const STROKE_WIDTH = 2;
 
 // update the display based on the forces (but not positions)
 function updateDisplay() {
-  node
-    .attr("r", forceProperties.collide.radius)
-    .attr("stroke", "black")
-    .attr("stroke-width", STROKE_WIDTH)
-    .attr("fill", "white");
+  nodeCirc.attr("r", nodeRadius);
+
+  const nodeColor = (d) => {
+    return d.source
+      ? SOURCE_COLOR
+      : d.sink
+        ? SINK_COLOR
+        : d.group
+          ? colors[d.group]
+          : "white";
+  };
+
+  nodeCirc
+    .attr("stroke", (d) => {
+      return d.source ? SOURCE_COLOR : d.sink ? SINK_COLOR : "black";
+    })
+    .attr("fill", nodeColor);
+
+  nodeLabel.attr("display", config.enableVertexLabels ? "initial" : "none");
 
   link
     .attr("stroke-width", forceProperties.link.enabled ? 1 : 0.5)
     .attr("stroke", EDGE_COLOR)
     .attr("opacity", forceProperties.link.enabled ? 1 : 0)
     .attr("text-anchor", "middle");
+
+  edgelabels
+    .attr("display", config.enableEdgeLabels ? "initial" : "none")
+    .text((d) => d.value);
 }
 
 // Some useful vector math functions
@@ -288,24 +325,7 @@ function ticked() {
     .attr("x2", (d) => targetBorder(d).x)
     .attr("y2", (d) => targetBorder(d).y);
 
-  const SINK_COLOR = "red";
-  const SOURCE_COLOR = "blue";
-
-  node
-    .attr("cx", (d) => d.x)
-    .attr("cy", (d) => d.y)
-    .attr("stroke", (d) => {
-      return d.source ? SOURCE_COLOR : d.sink ? SINK_COLOR : "black";
-    })
-    .attr("fill", (d) => {
-      return d.source
-        ? SOURCE_COLOR
-        : d.sink
-          ? SINK_COLOR
-          : d.group
-            ? colors[d.group]
-            : "white";
-    });
+  node.attr("transform", (d) => `translate(${d.x}, ${d.y})`);
 
   d3.select("#alpha_value").style("flex-basis", simulation.alpha() * 100 + "%");
 
@@ -321,10 +341,6 @@ function ticked() {
       " " +
       d.target.y,
   );
-
-  edgelabels
-    .attr("display", config.enableEdgeLabels ? "initial" : "none")
-    .text((d) => d.value);
 }
 
 //////////// UI EVENTS ////////////
