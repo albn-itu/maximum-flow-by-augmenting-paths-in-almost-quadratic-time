@@ -1,4 +1,4 @@
-const svg = d3.select("svg"),
+let svg = d3.select("svg"),
   width = +svg.node().getBoundingClientRect().width,
   height = +svg.node().getBoundingClientRect().height;
 
