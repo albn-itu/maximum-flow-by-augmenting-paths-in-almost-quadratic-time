@@ -16,7 +16,7 @@ d3.json("output.json", (error, _graph) => {
   document
     .querySelector("#frameSlider")
     .setAttribute("max", graph.frames.length - 1);
-  d3.select("#frame-label").text(`: ${curFrame().label}`);
+  d3.select("#frame-label").text(`Frame ${config.frame}: ${curFrame().label}`);
 
   initializeDisplay();
   initializeSimulation();
@@ -50,8 +50,7 @@ const curFrame = () => graph.frames[+config.frame];
 
 const onFramePick = (value) => {
   config.frame = value;
-  d3.select("#frameSliderOutput").text(value);
-  d3.select("#frame-label").text(`: ${curFrame().label}`);
+  d3.select("#frame-label").text(`Frame ${value}: ${curFrame().label}`);
   updateDisplay();
 };
 
