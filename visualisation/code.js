@@ -343,14 +343,18 @@ const colors = [
 function ticked() {
   // Some vector math to have the tip on the edge of the vertex circle instead of
   // at the center of it. For the sake of arrow heads.
+  const sourceBorder = (d) => {
+    const r = nodeRadius(d.source) + STROKE_WIDTH - 1;
+    return sum(d.source, scale(free([d.source, d.target]), r));
+  };
   const targetBorder = (d) => {
     const r = nodeRadius(d.target) + STROKE_WIDTH + 1;
     return diff(d.target, scale(free([d.source, d.target]), r));
   };
 
   link
-    .attr("x1", ({ source }) => source.x)
-    .attr("y1", ({ source }) => source.y)
+    .attr("x1", (d) => sourceBorder(d).x)
+    .attr("y1", (d) => sourceBorder(d).y)
     .attr("x2", (d) => targetBorder(d).x)
     .attr("y2", (d) => targetBorder(d).y);
 
