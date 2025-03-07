@@ -272,7 +272,11 @@ const STROKE_WIDTH = 2;
 function updateDisplay() {
   const f = curFrame();
 
-  nodeCirc.attr("r", nodeRadius);
+  nodeCirc
+    .attr("r", nodeRadius)
+    .attr("stroke", (d) => (f.vertices[d.id].alive ? "black" : "red"));
+
+  node.attr("opacity", (d) => (f.vertices[d.id].alive ? 1 : 0.2));
 
   nodeLabel.attr("display", config.enableVertexLabels ? "initial" : "none");
 
