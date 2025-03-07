@@ -70,6 +70,15 @@ svg {
     </p>
   </div>
 
+  <div class="force">
+    <p><label>frame</label> The current step of the algorithm.</p>
+    <label>
+      frame
+      <span id="frame-label"></span>
+      <input type="range" min="0" max="1" value="0" step="1" oninput="onFramePick(this.value)" id="frameSlider">
+    </label>
+  </div>
+
   <div class="force alpha">
     <p><label>alpha</label> Simulation activity</p>
     <div class="alpha_bar" onclick="updateAll();"><div id="alpha_value"></div></div>

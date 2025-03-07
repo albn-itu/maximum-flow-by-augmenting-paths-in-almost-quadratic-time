@@ -87,36 +87,75 @@ def graphviz_frame(instance: "WeightedPushRelabel", kind: str = "", aug_path: se
         _ = f.write("}\n")
 
 
-def export_custom_frame(instance: "WeightedPushRelabel"):
-    global frames
-
-    if not ENABLED:
-        return
-
-    path = f"visualisation/iter_d3_{frames}.json"
-    frames += 1
-
+def init_custom_visualisation(instance: "WeightedPushRelabel"):
     all_edges: set[Edge] = set()
     for v in instance.G.V:
         all_edges.update(instance.outgoing[v])
 
     output = {
         "nodes": [],
-        "links": []
+        "links": [],
+        "frames": []
     }
 
     for e in all_edges:
         if not e.forward:
             continue
-        output["links"].append({ "source": e.u, "target": e.v, "value": 1 })
+
+        output["links"].append(
+            {"source": e.u, "target": e.v, "capacity": e.c, "id": e.id})
 
     for v in instance.G.V:
-        output["nodes"].append({
-            "id": v,
-            "group": 1,
-            "source": instance.sources[v] > 0,
-            "sink": instance.sinks[v] > 0,
-        })
+        node = {"id": v}
 
+        if instance.sources[v] > 0:
+            node["source"] = True
+        if instance.sinks[v] > 0:
+            node["sink"] = True
+
+        output["nodes"].append(node)
+
+    return output
+
+
+def write_custom_frame_into(instance: "WeightedPushRelabel", output: dict, label: str | None = None, augmenting_path: list[Edge] | None = None):
+    if not ENABLED:
+        return
+
+    all_edges: set[Edge] = set()
+    for v in instance.G.V:
+        all_edges.update(instance.outgoing[v])
+
+    frame = {
+        "label": label,
+        "vertices": {},
+        "edges": {},
+        "augmentingPath": [],
+    }
+
+    if augmenting_path is not None:
+        frame["augmentingPath"] = [e.id for e in augmenting_path]
+
+    for e in all_edges:
+        if not e.forward:
+            continue
+
+        frame["edges"][e.id] = {
+            "flow": instance.f.get(e, 0),
+            "remainingCapacity": instance.c_f(e),
+            "weight": instance.w(e),
+        }
+
+    for v in instance.G.V:
+        frame["vertices"][v] = {
+            "alive": v in instance.alive,
+            "height": instance.l[v]
+        }
+
+    output["frames"].append(frame)
+
+
+def export_custom_visualisation(output: dict):
+    path = "visualisation/output.json"
     with open(path, "w") as f:
         json.dump(output, f, indent=2)

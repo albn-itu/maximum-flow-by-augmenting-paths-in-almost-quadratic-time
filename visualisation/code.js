@@ -8,10 +8,15 @@ let link, node, nodeCirc, nodeLabel, edgeLabel, edgepaths, edgelabels;
 let graph;
 
 // load the data
-d3.json("expander.json", (error, _graph) => {
+d3.json("output.json", (error, _graph) => {
   if (error) throw error;
 
   graph = _graph;
+
+  document
+    .querySelector("#frameSlider")
+    .setAttribute("max", graph.frames.length - 1);
+  d3.select("#frame-label").text(`: ${curFrame().label}`);
 
   initializeDisplay();
   initializeSimulation();
@@ -20,6 +25,7 @@ d3.json("expander.json", (error, _graph) => {
 const SINK_COLOR = "red";
 const SOURCE_COLOR = "#00ffff";
 const EDGE_COLOR = "#aaa";
+const AUG_EDGE_COLOR = "#0000ff";
 
 //////////// FORCE SIMULATION ////////////
 
@@ -37,6 +43,16 @@ const config = {
   enableEdgeLabels: false,
   enableVertexLabels: true,
   contractSameGroupEdges: false,
+  frame: 0,
+};
+
+const curFrame = () => graph.frames[+config.frame];
+
+const onFramePick = (value) => {
+  config.frame = value;
+  d3.select("#frameSliderOutput").text(value);
+  d3.select("#frame-label").text(`: ${curFrame().label}`);
+  updateDisplay();
 };
 
 // values for all forces
@@ -142,7 +158,7 @@ function updateForces() {
 
 //////////// DISPLAY ////////////
 const nodeRadius = (d) => {
-  const r = forceProperties.collide.radius;
+  const r = +forceProperties.collide.radius;
   return d.source || d.sink ? r * 1.5 : r;
 };
 
@@ -156,20 +172,25 @@ const nodeColor = (d) => {
         : "white";
 };
 
-// generate the svg objects and force simulation
-function initializeDisplay() {
+const mkMarker = (id, color) => {
   svg
     .append("svg:defs")
     .append("svg:marker")
-    .attr("id", "arrowhead")
+    .attr("id", id)
     .attr("refX", 3)
     .attr("refY", 3)
     .attr("markerWidth", 50)
     .attr("markerHeight", 50)
     .attr("orient", "auto")
     .append("path")
-    .style("fill", EDGE_COLOR)
+    .style("fill", color)
     .attr("d", "M 0 0 6 3 0 6");
+};
+
+// generate the svg objects and force simulation
+function initializeDisplay() {
+  mkMarker("arrowhead", EDGE_COLOR);
+  mkMarker("arrowhead-aug", AUG_EDGE_COLOR);
 
   // set the data and properties of link lines
   link = svg
@@ -250,19 +271,30 @@ const STROKE_WIDTH = 2;
 
 // update the display based on the forces (but not positions)
 function updateDisplay() {
+  const f = curFrame();
+
   nodeCirc.attr("r", nodeRadius);
 
   nodeLabel.attr("display", config.enableVertexLabels ? "initial" : "none");
 
   link
-    .attr("stroke-width", forceProperties.link.enabled ? 1 : 0.5)
-    .attr("stroke", EDGE_COLOR)
+    .attr("stroke-width", (d) => (f.augmentingPath.includes(d.id) ? 2 : 1))
+    .attr("stroke", (d) =>
+      f.augmentingPath.includes(d.id) ? AUG_EDGE_COLOR : EDGE_COLOR,
+    )
+    .attr("fill", (d) =>
+      f.augmentingPath.includes(d.id) ? AUG_EDGE_COLOR : EDGE_COLOR,
+    )
+    .attr(
+      "marker-end",
+      (d) => `url(#arrowhead${f.augmentingPath.includes(d.id) ? "-aug" : ""})`,
+    )
     .attr("opacity", forceProperties.link.enabled ? 1 : 0)
     .attr("text-anchor", "middle");
 
   edgelabels
     .attr("display", config.enableEdgeLabels ? "initial" : "none")
-    .text((d) => d.value);
+    .text((d) => `${f.edges[d.id].flow}/${d.capacity}`);
 }
 
 // Some useful vector math functions
@@ -309,8 +341,8 @@ function ticked() {
   // Some vector math to have the tip on the edge of the vertex circle instead of
   // at the center of it. For the sake of arrow heads.
   const targetBorder = (d) => {
-    const nodeRadius = +forceProperties.collide.radius + STROKE_WIDTH + 1;
-    return diff(d.target, scale(free([d.source, d.target]), nodeRadius));
+    const r = nodeRadius(d.target) + STROKE_WIDTH + 1;
+    return diff(d.target, scale(free([d.source, d.target]), r));
   };
 
   link

@@ -3,7 +3,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from src import benchmark
-from .visualisation import export_custom_frame, graphviz_frame
+from .visualisation import export_custom_visualisation, graphviz_frame, init_custom_visualisation, write_custom_frame_into
 from .utils import Edge, Graph, Vertex, next_multiple_of
 
 
@@ -75,8 +75,8 @@ class WeightedPushRelabel:
                     self.mark_inadmissible(e)
 
         graphviz_frame(self, "Initial")
-
-        export_custom_frame(self)
+        vis = init_custom_visualisation(self)
+        write_custom_frame_into(self, vis, label="Initial")
 
         while True:
             benchmark.register_or_update("blik.iterations", 1, lambda x: x + 1)
@@ -86,12 +86,14 @@ class WeightedPushRelabel:
                 benchmark.register_or_update("blik.relabels", 1, lambda x: x + 1)
 
             graphviz_frame(self, "After relabel")
+            write_custom_frame_into(self, vis, label="After relabel")
 
             if (s := self.find_alive_vertex_with_excess()) is not None:
                 P = self.trace_path(s)
                 assert P is not None, "Path not found, but we always expect one."
 
                 graphviz_frame(self, "Traced path", aug_path=set(P))
+                write_custom_frame_into(self, vis, label="Traced path", augmenting_path=P)
 
                 t = P[-1].end()
 
@@ -124,8 +126,11 @@ class WeightedPushRelabel:
                         self.mark_inadmissible(e)
 
                 graphviz_frame(self, "After pushing")
+                write_custom_frame_into(self, vis, label="After pushing")
             else:
                 graphviz_frame(self, "Final")
+                write_custom_frame_into(self, vis, label="Final")
+                export_custom_visualisation(vis)
 
                 result = self.amount_of_routed_flow(f)
                 benchmark.register("blik.flow", result)
