@@ -42,6 +42,27 @@ svg {
   pointer-events: all;
 }
 
+.legend {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  padding: 0px 15px;
+  background-color: #eee;
+}
+
+.legend p {
+  display: flex;
+  align-items: center;
+}
+
+.legend .legend-color {
+  box-sizing: border-box;
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  margin-right: 5px;
+  border: 1px solid #000;
+}
 </style>
 </head>
 <body>
@@ -49,17 +70,24 @@ svg {
   <div class="force">
     <p>
       <label>
-        <input type="checkbox" onchange="config.enableEdgeLabels = this.checked; updateDisplay();">
+        <input type="checkbox" onchange="config.enableEdgeLabels = this.checked; updateDisplay();" id="edge-labels-checkbox">
         edge labels
       </label>
       Displays labels on edges. Will slow down simulation.
     </p>
     <p>
       <label>
-        <input type="checkbox" checked onchange="config.enableVertexLabels = this.checked; updateDisplay();">
+        <input type="checkbox" checked onchange="config.enableVertexLabels = this.checked; updateDisplay();" id="vertex-labels-checkbox">
         vertex labels
       </label>
       Displays labels on vertices. Will slow down simulation.
+    </p>
+    <p>
+      <label>
+        <input type="checkbox" checked onchange="config.enableVertexHeights = this.checked; updateDisplay();" id="vertex-heights-checkbox">
+        vertex heights
+      </label>
+      Displays the height of each vertex.
     </p>
     <p>
       <label>
@@ -174,6 +202,19 @@ svg {
       <output id="link_IterationsSliderOutput">1</output>
       <input type="range" min="1" max="10" value="1" step="1" oninput="d3.select('#link_IterationsSliderOutput').text(value); forceProperties.link.iterations=value; updateAll();">
     </label>
+  </div>
+
+  <div class="legend">
+    <h3>Legend</h3>
+    <h4>Vertices</h4>
+    <p><span class="legend-color" id="legend-source"></span> Source</p>
+    <p><span class="legend-color" id="legend-sink"></span> Sink</p>
+    <p><span class="legend-color" id="legend-dead"></span> Dead vertex</p>
+    <h4>Edges</h4>
+    <p><span class="legend-color" id="legend-edge"></span> Standard edge</p>
+    <p><span class="legend-color" id="legend-used-edge"></span> Partially full edge</p>
+    <p><span class="legend-color" id="legend-saturated-edge"></span> Saturated edge</p>
+    <p><span class="legend-color" id="legend-aug-edge"></span> On augmenting path</p>
   </div>
 </div>
 <svg></svg>

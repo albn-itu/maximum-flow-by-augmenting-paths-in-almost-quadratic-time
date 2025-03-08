@@ -3,7 +3,14 @@ let svg = d3.select("svg"),
   height = +svg.node().getBoundingClientRect().height;
 
 // svg objects
-let link, node, nodeCirc, nodeLabel, edgeLabel, edgepaths, edgelabels;
+let link,
+  node,
+  nodeCirc,
+  nodeLabel,
+  nodeSubscript,
+  edgeLabel,
+  edgepaths,
+  edgelabels;
 // the data - an object with nodes and links
 let graph;
 
@@ -24,7 +31,11 @@ d3.json("output.json", (error, _graph) => {
 
 const SINK_COLOR = "red";
 const SOURCE_COLOR = "#00ffff";
+const DEAD_COLOR = "red";
+
 const EDGE_COLOR = "#aaa";
+const USED_EDGE_COLOR = "green";
+const SATURATED_EDGE_COLOR = "red";
 const AUG_EDGE_COLOR = "#0000ff";
 
 //////////// FORCE SIMULATION ////////////
@@ -42,6 +53,7 @@ function initializeSimulation() {
 const config = {
   enableEdgeLabels: false,
   enableVertexLabels: true,
+  enableVertexHeights: true,
   contractSameGroupEdges: false,
   frame: 0,
 };
@@ -188,8 +200,23 @@ const mkMarker = (id, color) => {
 
 // generate the svg objects and force simulation
 function initializeDisplay() {
+  const setLegendColor = (id, color = null, borderColor = null) => {
+    if (color) d3.select(id).style("background-color", color);
+    if (borderColor) d3.select(id).style("border", `2px solid ${borderColor}`);
+  };
+
+  setLegendColor("#legend-source", SOURCE_COLOR);
+  setLegendColor("#legend-sink", SINK_COLOR);
+  setLegendColor("#legend-dead", null, DEAD_COLOR);
+  setLegendColor("#legend-edge", EDGE_COLOR);
+  setLegendColor("#legend-used-edge", USED_EDGE_COLOR);
+  setLegendColor("#legend-saturated-edge", SATURATED_EDGE_COLOR);
+  setLegendColor("#legend-aug-edge", AUG_EDGE_COLOR);
+
   mkMarker("arrowhead", EDGE_COLOR);
-  mkMarker("arrowhead-aug", AUG_EDGE_COLOR);
+  mkMarker("arrowhead-blue", "blue");
+  mkMarker("arrowhead-red", "red");
+  mkMarker("arrowhead-green", "green");
 
   // set the data and properties of link lines
   link = svg
@@ -223,7 +250,7 @@ function initializeDisplay() {
     .attr("id", function (d, i) {
       return "edgelabel" + i;
     })
-    .attr("font-size", 10)
+    .attr("font-size", 8)
     .attr("fill", EDGE_COLOR)
     .append("textPath") //To render text along the shape of a <path>, enclose the text in a <textPath> element that has an href attribute with a reference to the <path> element.
     .attr("xlink:href", (d, i) => "#edgepath" + i)
@@ -262,6 +289,11 @@ function initializeDisplay() {
     .attr("text-anchor", "middle")
     .attr("dy", 3);
 
+  nodeSubscript = node
+    .append("text")
+    .attr("font-size", 5)
+    .attr("text-anchor", "middle");
+
   // visualize the graph
   updateDisplay();
 }
@@ -272,26 +304,43 @@ const STROKE_WIDTH = 2;
 function updateDisplay() {
   const f = curFrame();
 
-  nodeCirc
-    .attr("r", nodeRadius)
-    .attr("stroke", (d) => (f.vertices[d.id].alive ? "black" : "red"));
+  const borderColor = (d) => (f.vertices[d.id].alive ? "black" : DEAD_COLOR);
+  const nodeOpacity = (d) => (f.vertices[d.id].alive ? 1 : 0.2);
 
-  node.attr("opacity", (d) => (f.vertices[d.id].alive ? 1 : 0.2));
+  nodeCirc.attr("r", nodeRadius).attr("stroke", borderColor);
 
-  nodeLabel.attr("display", config.enableVertexLabels ? "initial" : "none");
+  node.attr("opacity", nodeOpacity);
+
+  nodeLabel
+    .attr("display", config.enableVertexLabels ? "initial" : "none")
+    .text((d) => d.id);
+
+  nodeSubscript
+    .attr("display", config.enableVertexHeights ? "initial" : "none")
+    .text((d) => f.vertices[d.id].height)
+    .attr("dy", (d) => nodeRadius(d) + 6);
+
+  const edgeColor = (d) => {
+    if (f.augmentingPath.some((id) => Math.abs(id) === d.id)) return "blue";
+    if (f.edges[d.id].remainingCapacity === 0) return "red";
+    if (f.edges[d.id].flow > 0) return "green";
+    return EDGE_COLOR;
+  };
+
+  const edgeMarker = (d) => {
+    let color = "";
+    if (f.augmentingPath.includes(d.id)) color = "-blue";
+    else if (f.edges[d.id].remainingCapacity === 0) color = "-red";
+    else if (f.edges[d.id].flow > 0) color = "-green";
+    return `url(#arrowhead${color})`;
+  };
+
+  const edgeWidth = (d) => (f.augmentingPath.includes(d.id) ? 1.5 : 1);
 
   link
-    .attr("stroke-width", (d) => (f.augmentingPath.includes(d.id) ? 2 : 1))
-    .attr("stroke", (d) =>
-      f.augmentingPath.includes(d.id) ? AUG_EDGE_COLOR : EDGE_COLOR,
-    )
-    .attr("fill", (d) =>
-      f.augmentingPath.includes(d.id) ? AUG_EDGE_COLOR : EDGE_COLOR,
-    )
-    .attr(
-      "marker-end",
-      (d) => `url(#arrowhead${f.augmentingPath.includes(d.id) ? "-aug" : ""})`,
-    )
+    .attr("stroke-width", edgeWidth)
+    .attr("stroke", edgeColor)
+    .attr("marker-end", edgeMarker)
     .attr("opacity", forceProperties.link.enabled ? 1 : 0)
     .attr("text-anchor", "middle");
 
@@ -393,6 +442,34 @@ d3.select(window).on("resize", () => {
   width = +svg.node().getBoundingClientRect().width;
   height = +svg.node().getBoundingClientRect().height;
   updateForces();
+});
+
+d3.select(window).on("keypress", () => {
+  const key = d3.event.key;
+
+  if (key === "l") {
+    const newVal = Math.min(config.frame + 1, graph.frames.length - 1);
+    d3.select("#frameSlider").property("value", newVal);
+    onFramePick(newVal);
+  }
+
+  if (key === "h") {
+    const newVal = Math.max(config.frame - 1, 0);
+    d3.select("#frameSlider").property("value", newVal);
+    onFramePick(newVal);
+  }
+
+  if (key === "e") {
+    document.querySelector("#edge-labels-checkbox").click();
+  }
+
+  if (key === "v") {
+    document.querySelector("#vertex-labels-checkbox").click();
+  }
+
+  if (key === "k") {
+    document.querySelector("#vertex-heights-checkbox").click();
+  }
 });
 
 // convenience function to update everything (run after UI input)
