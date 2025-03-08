@@ -200,18 +200,19 @@ const mkMarker = (id, color) => {
 
 // generate the svg objects and force simulation
 function initializeDisplay() {
-  const setLegendColor = (id, color = null, borderColor = null) => {
+  const setLegendColor = (id, color = null, border = null) => {
     if (color) d3.select(id).style("background-color", color);
-    if (borderColor) d3.select(id).style("border", `2px solid ${borderColor}`);
+    if (border) d3.select(id).style("border", `2px ${border}`);
   };
 
   setLegendColor("#legend-source", SOURCE_COLOR);
   setLegendColor("#legend-sink", SINK_COLOR);
-  setLegendColor("#legend-dead", null, DEAD_COLOR);
+  setLegendColor("#legend-dead", null, `solid ${DEAD_COLOR}`);
   setLegendColor("#legend-edge", EDGE_COLOR);
   setLegendColor("#legend-used-edge", USED_EDGE_COLOR);
   setLegendColor("#legend-saturated-edge", SATURATED_EDGE_COLOR);
   setLegendColor("#legend-aug-edge", AUG_EDGE_COLOR);
+  setLegendColor("#legend-inadmissible-edge", null, `dashed black`);
 
   mkMarker("arrowhead", EDGE_COLOR);
   mkMarker("arrowhead-blue", "blue");
@@ -342,6 +343,7 @@ function updateDisplay() {
     .attr("stroke", edgeColor)
     .attr("marker-end", edgeMarker)
     .attr("opacity", forceProperties.link.enabled ? 1 : 0)
+    .attr("stroke-dasharray", (d) => (f.edges[d.id].admissible ? "0,0" : "4"))
     .attr("text-anchor", "middle");
 
   edgelabels
