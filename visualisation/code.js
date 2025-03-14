@@ -15,10 +15,21 @@ let link,
 let graph;
 
 // load the data
-d3.json("output.json", (error, _graph) => {
+
+const getFileName = () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const file = urlParams.get("graph");
+  return file || "graph.json";
+};
+
+const fileName = getFileName();
+
+d3.json(fileName, (error, _graph) => {
   if (error) throw error;
 
   graph = _graph;
+
+  document.querySelector("#graph-name").innerText = fileName;
 
   document
     .querySelector("#frameSlider")
