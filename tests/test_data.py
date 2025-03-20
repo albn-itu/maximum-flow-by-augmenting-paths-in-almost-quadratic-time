@@ -283,3 +283,18 @@ def test_correct_maxflow_not_dag(input_file: str, expected: int):
 def test_benchmark_maxflow_not_dag(input_file: str, expected: int):
     run_test(read_file(input_file), expected, weighted_push_relabel)
     run_test(input_file, expected, wrap_correct)
+
+
+WAISSI_FILES = [
+    "tests/data/waissi/001_22_72_52.txt",
+]
+
+
+@pytest.mark.benchmark
+@pytest.mark.notdag
+@pytest.mark.waissi
+@bench
+@pytest.mark.parametrize("input_file,expected", parse_maxflow_file_names(WAISSI_FILES))
+def test_benchmark_waissi(input_file: str, expected: int):
+    run_test(input_file, expected, weighted_push_relabel)
+    run_test(input_file, expected, wrap_correct)
