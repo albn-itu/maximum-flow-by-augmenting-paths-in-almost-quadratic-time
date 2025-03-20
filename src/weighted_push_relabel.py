@@ -65,11 +65,7 @@ class WeightedPushRelabel:
         def relabel(v: Vertex):
             edges = self.incident[v]
 
-            levels = [next_multiple_of(n=l[v], multiple_of=w(e)) for e in edges]
-            if len(levels) == 0:
-                self.mark_dead(v)
-                return
-            l[v] = min(levels)
+            l[v] = min((next_multiple_of(n=l[v], multiple_of=w(e)) for e in edges), default=9*h+1)
 
             benchmark.register_or_update(
                 "blik.highest_level", l[v], lambda x: max(x, l[v])
