@@ -1,6 +1,7 @@
 from collections import defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass, field
+import time
 
 from src import benchmark
 from .visualisation import export_custom_visualisation, graphviz_frame, init_custom_visualisation, write_custom_frame_into
@@ -125,6 +126,16 @@ class WeightedPushRelabel:
                     if c_f(e) == 0:
                         self.mark_inadmissible(e)
 
+                def transfer_bench_key(from_key: str, to_key: str):
+                    benchmark.register_or_update(
+                        to_key,
+                        benchmark.get_or_default(from_key, 0) or 0,
+                        lambda x: benchmark.get_or_default(to_key, 0) or 0,
+                    )
+                transfer_bench_key("blik.relabels", "blik.before_kill.relabels")
+                transfer_bench_key("blik.marked_admissible", "blik.before_kill.marked_admissible")
+                transfer_bench_key("blik.marked_inadmissible", "blik.before_kill.marked_inadmissible")
+
                 graphviz_frame(self, "After pushing")
                 write_custom_frame_into(self, vis, label="After pushing")
             else:
@@ -243,9 +254,16 @@ def weighted_push_relabel(
     w: weight function for edges
     h: height parameter
     """
+    start = time.time_ns()
+
     _sources = {v: sources[i] for i, v in enumerate(G.V)}
     _sinks = {v: sinks[i] for i, v in enumerate(G.V)}
-    return WeightedPushRelabel(G, c, _sources, _sinks, w, h).solve()
+    res = WeightedPushRelabel(G, c, _sources, _sinks, w, h).solve()
+
+    end = time.time_ns()
+    benchmark.register(f"blik.duration_s", (end - start) / 1e9)
+     
+    return res
 
 
 # Black box for line 13 of Alg. 1 in the paper.
