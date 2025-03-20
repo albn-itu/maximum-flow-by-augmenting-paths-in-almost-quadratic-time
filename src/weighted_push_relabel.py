@@ -4,7 +4,12 @@ from dataclasses import dataclass, field
 import time
 
 from src import benchmark
-from .visualisation import export_custom_visualisation, graphviz_frame, init_custom_visualisation, write_custom_frame_into
+from .visualisation import (
+    export_custom_visualisation,
+    graphviz_frame,
+    init_custom_visualisation,
+    write_custom_frame_into,
+)
 from .utils import Edge, Graph, Vertex, next_multiple_of
 
 
@@ -33,7 +38,9 @@ class WeightedPushRelabel:
     incident: dict[Vertex, set[Edge]] = field(default_factory=dict)
 
     def solve(self) -> tuple[int, dict[Edge, int]]:
-        self.outgoing, self.incoming, self.incident = make_outgoing_incoming(self.G, self.c)
+        self.outgoing, self.incoming, self.incident = make_outgoing_incoming(
+            self.G, self.c
+        )
 
         self.f = defaultdict(int)
         self.l = {v: 0 for v in self.G.V}
@@ -58,7 +65,11 @@ class WeightedPushRelabel:
         def relabel(v: Vertex):
             edges = self.incident[v]
 
-            l[v] = min(next_multiple_of(n=l[v], multiple_of=w(e)) for e in edges)
+            levels = [next_multiple_of(n=l[v], multiple_of=w(e)) for e in edges]
+            if len(levels) == 0:
+                self.mark_dead(v)
+                return
+            l[v] = min(levels)
 
             benchmark.register_or_update(
                 "blik.highest_level", l[v], lambda x: max(x, l[v])
@@ -94,7 +105,9 @@ class WeightedPushRelabel:
                 assert P is not None, "Path not found, but we always expect one."
 
                 graphviz_frame(self, "Traced path", aug_path=set(P))
-                write_custom_frame_into(self, vis, label="Traced path", augmenting_path=P)
+                write_custom_frame_into(
+                    self, vis, label="Traced path", augmenting_path=P
+                )
 
                 t = P[-1].end()
 

@@ -28,7 +28,7 @@ class PushRelabel:
 
             self.capacities[u][v] = cap
 
-        self.n = len(vs)
+        self.n = max(vs) + 1
 
         self.height = [0] * self.n
         self.excess = [0] * self.n

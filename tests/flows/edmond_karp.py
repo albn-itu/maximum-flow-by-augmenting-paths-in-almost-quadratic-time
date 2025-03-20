@@ -19,7 +19,7 @@ class MaxFlow:
 
             self.capacities[u][v] = cap
 
-        self.n = len(vs)
+        self.n = max(vs) + 1
 
         self.adj = defaultdict(list)
         for u, v in edges:
