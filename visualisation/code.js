@@ -29,6 +29,17 @@ d3.json(fileName, (error, _graph) => {
 
   graph = _graph;
 
+  graph.links.forEach((d) => {
+    const reverseEdge = graph.links.find(
+      (e) => e.source === d.target && e.target === d.source,
+    );
+
+    if (reverseEdge) {
+      d.bidirectional = true;
+      reverseEdge.bidirectional = true;
+    }
+  });
+
   document.querySelector("#graph-name").innerText = fileName;
 
   document
@@ -379,6 +390,11 @@ const scale = (vector, scalar) => prod(unit(vector), scalar);
 
 const free = ([coord1, coord2]) => diff(coord2, coord1);
 
+const rotate = ({ x, y }, angle) => ({
+  x: x * Math.cos(angle) - y * Math.sin(angle),
+  y: x * Math.sin(angle) + y * Math.cos(angle),
+});
+
 const colors = [
   "#FF6633",
   "#FFB399",
@@ -414,11 +430,33 @@ function ticked() {
     return diff(d.target, scale(free([d.source, d.target]), r));
   };
 
+  const calcEdgeEndpoints = (d) => {
+    const makeDelta = (p) => {
+      const r = nodeRadius(p) + STROKE_WIDTH;
+      return scale(free([d.source, d.target]), r);
+    };
+
+    let edgySource = makeDelta(d.source);
+    let edgyTarget = makeDelta(d.target);
+    if (d.bidirectional) {
+      edgySource = rotate(edgySource, -Math.PI / 2 / 5);
+      edgyTarget = rotate(edgyTarget, Math.PI / 2 / 5);
+    }
+
+    const start = sum(d.source, edgySource);
+    const end = diff(d.target, edgyTarget);
+
+    return {
+      start,
+      end,
+    };
+  };
+
   link
-    .attr("x1", (d) => sourceBorder(d).x)
-    .attr("y1", (d) => sourceBorder(d).y)
-    .attr("x2", (d) => targetBorder(d).x)
-    .attr("y2", (d) => targetBorder(d).y);
+    .attr("x1", (d) => calcEdgeEndpoints(d).start.x)
+    .attr("y1", (d) => calcEdgeEndpoints(d).start.y)
+    .attr("x2", (d) => calcEdgeEndpoints(d).end.x)
+    .attr("y2", (d) => calcEdgeEndpoints(d).end.y);
 
   node.attr("transform", (d) => `translate(${d.x}, ${d.y})`);
 
@@ -427,7 +465,7 @@ function ticked() {
   edgepaths.attr(
     "d",
     (d) =>
-      `M ${d.source.x} ${d.source.y} L ${targetBorder(d).x} ${targetBorder(d).y}`,
+      `M ${calcEdgeEndpoints(d).start.x} ${calcEdgeEndpoints(d).start.y} L ${calcEdgeEndpoints(d).end.x} ${calcEdgeEndpoints(d).end.y}`,
   );
 }
 
