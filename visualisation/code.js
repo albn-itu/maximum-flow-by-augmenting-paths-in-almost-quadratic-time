@@ -421,23 +421,14 @@ const colors = [
 function ticked() {
   // Some vector math to have the tip on the edge of the vertex circle instead of
   // at the center of it. For the sake of arrow heads.
-  const sourceBorder = (d) => {
-    const r = nodeRadius(d.source) + STROKE_WIDTH - 1;
-    return sum(d.source, scale(free([d.source, d.target]), r));
-  };
-  const targetBorder = (d) => {
-    const r = nodeRadius(d.target) + STROKE_WIDTH + 1;
-    return diff(d.target, scale(free([d.source, d.target]), r));
-  };
-
   const calcEdgeEndpoints = (d) => {
-    const makeDelta = (p) => {
-      const r = nodeRadius(p) + STROKE_WIDTH;
+    const makeDelta = (p, add = 0) => {
+      const r = nodeRadius(p) + STROKE_WIDTH + add;
       return scale(free([d.source, d.target]), r);
     };
 
-    let edgySource = makeDelta(d.source);
-    let edgyTarget = makeDelta(d.target);
+    let edgySource = makeDelta(d.source, -1);
+    let edgyTarget = makeDelta(d.target, 1);
     if (d.bidirectional) {
       edgySource = rotate(edgySource, -Math.PI / 2 / 5);
       edgyTarget = rotate(edgyTarget, Math.PI / 2 / 5);
