@@ -128,8 +128,8 @@ svg {
     <p><label><input type="checkbox" checked onchange="forceProperties.charge.enabled = this.checked; updateAll();"> charge</label> Attracts (+) or repels (-) nodes to/from each other.</p>
     <label title="Negative strength repels nodes. Positive strength attracts nodes.">
       strength
-      <output id="charge_StrengthSliderOutput">-30</output>
-      <input type="range" min="-200" max="50" value="-30" step=".1" oninput="d3.select('#charge_StrengthSliderOutput').text(value); forceProperties.charge.strength=value; updateAll();">
+      <output id="charge_StrengthSliderOutput">-180</output>
+      <input type="range" min="-200" max="50" value="-180" step=".1" oninput="d3.select('#charge_StrengthSliderOutput').text(value); forceProperties.charge.strength=value; updateAll();">
     </label>
     <label title="Minimum distance where force is applied">
       distanceMin
