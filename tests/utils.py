@@ -38,9 +38,8 @@ def parse_input(
     input: str, expected: int
 ) -> tuple[Graph, list[int], list[int], list[int]]:
     lines = input.strip().split("\n")
-    n, _, s, t = map(int, lines[0].split())
+    _, _, s, t = map(int, lines[0].split())
 
-    vertices = list(range(n))
     edges: list[tuple[int, int]] = []
     capacities: list[int] = []
 
@@ -50,6 +49,9 @@ def parse_input(
 
         edges.append((int(u), int(v)))
         capacities.append(int(cap))
+
+    n = max(max(e[0] for e in edges), max(e[1] for e in edges)) + 1
+    vertices = list(range(n))
 
     sources = [0] * n
     sinks = [0] * n
@@ -83,9 +85,12 @@ def run_test(
     input: str,
     expected: int,
     flow_fn: FlowFn,
-    weight_fn: Callable[[Edge], int] = lambda e: 1,
+    weight_fn: Callable[[Edge], int] | None = None,
     h: int | None = None,
 ):
+    if weight_fn is None:
+        weight_fn = lambda e: 1
+
     benchmark.register_or_update("bench_config.top_sort", False, lambda x: x)
 
     g, c, sources, sinks = parse_input(input, expected)
