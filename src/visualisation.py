@@ -103,7 +103,7 @@ def init_custom_visualisation(instance: "WeightedPushRelabel"):
             continue
 
         output["links"].append(
-            {"source": e.u, "target": e.v, "capacity": e.c, "id": e.id})
+            {"source": e.u, "target": e.v, "capacity": e.c, "id": e.id, "weight": instance.w(e)})
 
     for v in instance.G.V:
         node = {"id": v}

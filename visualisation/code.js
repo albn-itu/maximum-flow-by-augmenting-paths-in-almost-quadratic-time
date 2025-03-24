@@ -78,6 +78,7 @@ const config = {
   enableVertexHeights: true,
   contractSameGroupEdges: false,
   frame: 0,
+  showWeightsAsEdgeLabels: false,
 };
 
 const curFrame = () => graph.frames[+config.frame];
@@ -96,7 +97,7 @@ forceProperties = {
   },
   charge: {
     enabled: true,
-    strength: -30,
+    strength: -180,
     distanceMin: 1,
     distanceMax: 2000,
   },
@@ -370,7 +371,12 @@ function updateDisplay() {
 
   edgelabels
     .attr("display", config.enableEdgeLabels ? "initial" : "none")
-    .text((d) => `${f.edges[d.id].flow}/${d.capacity}`);
+    .text((d) => {
+      if (config.showWeightsAsEdgeLabels) {
+        return `w=${d.weight}`;
+      }
+      return `${f.edges[d.id].flow}/${d.capacity}`;
+    });
 }
 
 // Some useful vector math functions
@@ -511,6 +517,11 @@ d3.select(window).on("keypress", () => {
 
   if (key === "k") {
     document.querySelector("#vertex-heights-checkbox").click();
+  }
+
+  if (key === "w") {
+    config.showWeightsAsEdgeLabels = !config.showWeightsAsEdgeLabels;
+    updateDisplay();
   }
 });
 
