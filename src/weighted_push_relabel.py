@@ -58,14 +58,16 @@ class WeightedPushRelabel:
             },
         )
 
+        all_edges: set[Edge] = set(e for edges in self.outgoing.values() for e in edges)
         # Shorthands
-        w, h = self.w, self.h
+        w = {e: self.w(e.forward_edge()) for e in all_edges}
+        h = self.h
         f, l, c_f = self.f, self.l, self.c_f
 
         def relabel(v: Vertex):
             edges = self.incident[v]
 
-            l[v] = min((next_multiple_of(n=l[v], multiple_of=w(e)) for e in edges), default=9*h+1)
+            l[v] = min((next_multiple_of(n=l[v], multiple_of=w[e]) for e in edges), default=9*h+1)
 
             benchmark.register_or_update(
                 "blik.highest_level", l[v], lambda x: max(x, l[v])
@@ -75,9 +77,9 @@ class WeightedPushRelabel:
                 self.mark_dead(v)
                 return
 
-            for e in (e for e in edges if l[v] % w(e) == 0):
+            for e in (e for e in edges if l[v] % w[e] == 0):
                 x, y = e.start(), e.end()
-                if l[x] - l[y] >= 2 * w(e) and c_f(e) > 0:
+                if l[x] - l[y] >= 2 * w[e] and c_f(e) > 0:
                     self.mark_admissible(e)
                 else:
                     self.mark_inadmissible(e)
