@@ -540,11 +540,17 @@ function dragged(d) {
 }
 
 function dragended(d) {
-  if (!config.enableSimulation) return;
-
-  if (!d3.event.active) simulation.alphaTarget(0.0001);
-  d.fx = null;
-  d.fy = null;
+  if (config.enableSimulation) {
+    if (!d3.event.active) simulation.alphaTarget(0.0001);
+    d.fx = null;
+    d.fy = null;
+  } else {
+    // Snap to grid
+    const nearestMultiple = (n, m) => Math.round(n / m) * m;
+    d.x = nearestMultiple(d.x, 20);
+    d.y = nearestMultiple(d.y, 20);
+    ticked();
+  }
 }
 
 // update size-related forces
