@@ -467,6 +467,56 @@ function ticked() {
   );
 }
 
+const findSvgBoundingBox = () => {
+  const coords = [...document.querySelectorAll("g.nodes")].map((c) =>
+    c
+      .getAttribute("transform")
+      .replace("translate(", "")
+      .replace(")", "")
+      .split(", ")
+      .map((d) => Number.parseFloat(d)),
+  );
+
+  const r = +forceProperties.collide.radius * 1.5 + STROKE_WIDTH;
+
+  return {
+    minX: Math.floor(Math.min(...coords.map((c) => c[0])) - r),
+    minY: Math.floor(Math.min(...coords.map((c) => c[1])) - r),
+    maxX: Math.ceil(Math.max(...coords.map((c) => c[0])) + r),
+    maxY: Math.ceil(Math.max(...coords.map((c) => c[1])) + r),
+  };
+};
+
+const exportSvg = () => {
+  const { minX, minY, maxX, maxY } = findSvgBoundingBox();
+  let width = maxX - minX;
+  let height = maxY - minY;
+
+  let viewBox = `viewBox="${minX} ${minY} ${width} ${height}"`;
+
+  let s = `<svg version="1.1" baseProfile="full" xmlns="http://www.w3.org/2000/svg" ${viewBox} xmlns:xlink="http://www.w3.org/1999/xlink">`;
+  s += document.querySelector("svg").innerHTML;
+  s += "</svg>";
+
+  console.log(s);
+};
+
+const fitViewBox = () => {
+  exportSvg();
+
+  const { minX, minY, maxX, maxY } = findSvgBoundingBox();
+  const width = maxX - minX;
+  const height = maxY - minY;
+
+  const pct = 0.1;
+  const x = minX - width * pct;
+  const y = minY - height * pct;
+  const w = width * (1 + 2 * pct);
+  const h = height * (1 + 2 * pct);
+
+  svg.attr("viewBox", `${x} ${y} ${w} ${h}`);
+};
+
 //////////// UI EVENTS ////////////
 
 function dragstarted(d) {
@@ -523,6 +573,10 @@ d3.select(window).on("keypress", () => {
   if (key === "w") {
     config.showWeightsAsEdgeLabels = !config.showWeightsAsEdgeLabels;
     updateDisplay();
+  }
+
+  if (key === "r") {
+    fitViewBox();
   }
 });
 
