@@ -109,7 +109,15 @@ svg {
   <div class="force alpha">
     <p><label>alpha</label> Simulation activity</p>
     <div class="alpha_bar" onclick="updateAll();"><div id="alpha_value"></div></div>
+    <br>
+    <p>
+      <label>
+        <input type="checkbox" checked onchange="config.enableSimulation = this.checked; if (this.checked) updateForces();" id="enable-simulation-checkbox">
+        Enable simulation
+      </label>
+    </p>
   </div>
+
   <div class="force">
     <p><label>center</label> Shifts the view, so the graph is centered at this location.</p>
     <label>

@@ -79,6 +79,7 @@ const config = {
   contractSameGroupEdges: false,
   frame: 0,
   showWeightsAsEdgeLabels: false,
+  enableSimulation: true,
 };
 
 const curFrame = () => graph.frames[+config.frame];
@@ -520,17 +521,27 @@ const fitViewBox = () => {
 //////////// UI EVENTS ////////////
 
 function dragstarted(d) {
+  if (!config.enableSimulation) return;
+
   if (!d3.event.active) simulation.alphaTarget(0.3).restart();
   d.fx = d.x;
   d.fy = d.y;
 }
 
 function dragged(d) {
-  d.fx = d3.event.x;
-  d.fy = d3.event.y;
+  if (config.enableSimulation) {
+    d.fx = d3.event.x;
+    d.fy = d3.event.y;
+  } else {
+    d.x = d3.event.x;
+    d.y = d3.event.y;
+    ticked();
+  }
 }
 
 function dragended(d) {
+  if (!config.enableSimulation) return;
+
   if (!d3.event.active) simulation.alphaTarget(0.0001);
   d.fx = null;
   d.fy = null;
