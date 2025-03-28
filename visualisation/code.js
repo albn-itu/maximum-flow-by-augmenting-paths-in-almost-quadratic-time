@@ -557,7 +557,6 @@ function dragended(d) {
 d3.select(window).on("resize", () => {
   width = +svg.node().getBoundingClientRect().width;
   height = +svg.node().getBoundingClientRect().height;
-  updateForces();
 });
 
 d3.select(window).on("keypress", () => {
