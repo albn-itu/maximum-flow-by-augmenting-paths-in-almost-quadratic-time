@@ -51,14 +51,14 @@ d3.json(fileName, (error, _graph) => {
   initializeSimulation();
 });
 
-const SINK_COLOR = "red";
-const SOURCE_COLOR = "#00ffff";
-const DEAD_COLOR = "red";
+const SINK_COLOR = "#f3722c";
+const SOURCE_COLOR = "#277da1";
+const DEAD_COLOR = "#f94144";
 
 const EDGE_COLOR = "#aaa";
-const USED_EDGE_COLOR = "green";
-const SATURATED_EDGE_COLOR = "red";
-const AUG_EDGE_COLOR = "#0000ff";
+const USED_EDGE_COLOR = "#43aa8b";
+const SATURATED_EDGE_COLOR = DEAD_COLOR;
+const AUG_EDGE_COLOR = SOURCE_COLOR;
 
 //////////// FORCE SIMULATION ////////////
 
@@ -238,9 +238,9 @@ function initializeDisplay() {
   setLegendColor("#legend-inadmissible-edge", null, `dashed black`);
 
   mkMarker("arrowhead", EDGE_COLOR);
-  mkMarker("arrowhead-blue", "blue");
-  mkMarker("arrowhead-red", "red");
-  mkMarker("arrowhead-green", "green");
+  mkMarker("arrowhead-aug", AUG_EDGE_COLOR);
+  mkMarker("arrowhead-saturated", SATURATED_EDGE_COLOR);
+  mkMarker("arrowhead-used", USED_EDGE_COLOR);
 
   // set the data and properties of link lines
   link = svg
@@ -345,17 +345,18 @@ function updateDisplay() {
     .attr("dy", (d) => nodeRadius(d) + 6);
 
   const edgeColor = (d) => {
-    if (f.augmentingPath.some((id) => Math.abs(id) === d.id)) return "blue";
-    if (f.edges[d.id].remainingCapacity === 0) return "red";
-    if (f.edges[d.id].flow > 0) return "green";
+    if (f.augmentingPath.some((id) => Math.abs(id) === d.id))
+      return AUG_EDGE_COLOR;
+    if (f.edges[d.id].remainingCapacity === 0) return SATURATED_EDGE_COLOR;
+    if (f.edges[d.id].flow > 0) return USED_EDGE_COLOR;
     return EDGE_COLOR;
   };
 
   const edgeMarker = (d) => {
     let color = "";
-    if (f.augmentingPath.includes(d.id)) color = "-blue";
-    else if (f.edges[d.id].remainingCapacity === 0) color = "-red";
-    else if (f.edges[d.id].flow > 0) color = "-green";
+    if (f.augmentingPath.includes(d.id)) color = "-aug";
+    else if (f.edges[d.id].remainingCapacity === 0) color = "-saturated";
+    else if (f.edges[d.id].flow > 0) color = "-used";
     return `url(#arrowhead${color})`;
   };
 
