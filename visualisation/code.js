@@ -566,7 +566,8 @@ const fitViewBox = () => {
 //////////// UI EVENTS ////////////
 
 function dragstarted(d) {
-  calculateKnownKnowledge();
+  logMousePos(d);
+  playWeeSound();
 
   if (!config.enableSimulation) return;
 
@@ -576,6 +577,7 @@ function dragstarted(d) {
 }
 
 function dragged(d) {
+  updateVolumeBasedOnMouse(d);
   if (config.enableSimulation) {
     d.fx = d3.event.x;
     d.fy = d3.event.y;
@@ -587,7 +589,8 @@ function dragged(d) {
 }
 
 function dragended(d) {
-  invalidateKnownKnowledge();
+  clearMousePos();
+  stopWeeSound();
 
   if (config.enableSimulation) {
     if (!d3.event.active) simulation.alphaTarget(0.0001);
@@ -615,33 +618,40 @@ d3.select(window).on("keypress", () => {
     const newVal = Math.min(config.frame + 1, graph.frames.length - 1);
     d3.select("#frameSlider").property("value", newVal);
     onFramePick(newVal);
+    playBup();
   }
 
   if (key === "h") {
     const newVal = Math.max(config.frame - 1, 0);
     d3.select("#frameSlider").property("value", newVal);
     onFramePick(newVal);
+    playBup();
   }
 
   if (key === "e") {
     document.querySelector("#edge-labels-checkbox").click();
+    playBup();
   }
 
   if (key === "v") {
     document.querySelector("#vertex-labels-checkbox").click();
+    playBup();
   }
 
   if (key === "k") {
     document.querySelector("#vertex-heights-checkbox").click();
+    playBup();
   }
 
   if (key === "w") {
     config.showWeightsAsEdgeLabels = !config.showWeightsAsEdgeLabels;
     updateDisplay();
+    playBup();
   }
 
   if (key === "r") {
     fitViewBox();
+    playBup();
   }
 });
 
@@ -656,10 +666,10 @@ const explanations = [
   new Audio("components/2.mp3"),
 ];
 const backgroundExplanations = new Audio("components/1.mp3");
-const Knowldege = new Audio("components/w.mp3");
+const wee = new Audio("components/w.mp3");
 let currentIndex = 0;
 
-const calculateTheory = async () => {
+const playBup = async () => {
   const currentBup = explanations[currentIndex];
   if (!currentBup.paused) {
     currentBup.pause();
@@ -675,33 +685,58 @@ const calculateTheory = async () => {
   currentIndex = (currentIndex + 1) % explanations.length;
 };
 
-let KnowldegeTimeout = null;
-const calculateKnownKnowledge = async () => {
-  if (KnowldegeTimeout) {
-    clearTimeout(KnowldegeTimeout);
+let weeTimeout = null;
+let mousePos = null;
+const playWeeSound = async () => {
+  if (weeTimeout) {
+    clearTimeout(weeTimeout);
   }
-  if (Knowldege.paused) {
-    Knowldege.loop = true;
-    await Knowldege.play();
+  if (wee.paused) {
+    wee.loop = true;
+    await wee.play();
   } else {
-    Knowldege.loop = true;
+    wee.loop = true;
   }
 };
 
-const invalidateKnownKnowledge = async () => {
-  Knowldege.loop = false;
-  Knowldege.pause();
+const stopWeeSound = async () => {
+  wee.loop = false;
+  wee.pause();
 
-  KnowldegeTimeout = setTimeout(() => {
-    Knowldege.currentTime = 0;
+  weeTimeout = setTimeout(() => {
+    wee.currentTime = 0;
   }, 500);
+};
+
+const updateVolume = (e) => {
+  wee.volume = Math.min(e.target.value / e.target.max + 0.1, 1);
+};
+
+const logMousePos = (e) => {
+  mousePos = [e.x, e.y];
+};
+
+const clearMousePos = () => {
+  mousePos = null;
+};
+
+const updateVolumeBasedOnMouse = (e) => {
+  if (!mousePos) return;
+  const xDiff = e.x - mousePos[0];
+  const yDiff = e.y - mousePos[1];
+
+  wee.volume = Math.max(
+    Math.min((Math.pow(xDiff, 2) + Math.pow(yDiff, 2)) / 10_000, 1),
+    0.2
+  );
 };
 
 const inputs = document.querySelectorAll("input");
 for (const input of inputs) {
-  input.addEventListener("change", calculateTheory);
+  input.addEventListener("change", playBup);
   if (input.type == "range") {
-    input.addEventListener("mousedown", calculateKnownKnowledge);
-    input.addEventListener("mouseup", invalidateKnownKnowledge);
+    input.addEventListener("input", updateVolume);
+    input.addEventListener("mousedown", playWeeSound);
+    input.addEventListener("mouseup", stopWeeSound);
   }
 }
