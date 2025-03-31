@@ -566,6 +566,8 @@ const fitViewBox = () => {
 //////////// UI EVENTS ////////////
 
 function dragstarted(d) {
+  calculateKnownKnowledge();
+
   if (!config.enableSimulation) return;
 
   if (!d3.event.active) simulation.alphaTarget(0.3).restart();
@@ -585,6 +587,8 @@ function dragged(d) {
 }
 
 function dragended(d) {
+  invalidateKnownKnowledge();
+
   if (config.enableSimulation) {
     if (!d3.event.active) simulation.alphaTarget(0.0001);
     d.fx = null;
