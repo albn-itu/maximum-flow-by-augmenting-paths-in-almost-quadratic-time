@@ -1,4 +1,5 @@
 from src.utils import Edge
+from tests.known_inputs import GEEKS_FOR_GEEKS_GRAPH
 from tests.scripts.generator_dag import make_random_dag
 from tests.utils import bench, parse_input, run_test, run_test_with_topsort, wrap_correct
 from src.weighted_push_relabel import weighted_push_relabel
@@ -277,3 +278,103 @@ def test_dimacs_with_weight_fn():
         return 1 if e in in_flow_solution else 25
 
     compare_answers(dimacs, weight_fn=weight_fn)
+
+
+@pytest.mark.paper
+@bench
+def test_geeks_for_geeks_weight_fn_no():
+    compare_answers(GEEKS_FOR_GEEKS_GRAPH)
+
+
+@pytest.mark.paper
+@bench
+def test_geeks_for_geeks_weight_fn_with_w():
+    in_flow_solution = set([Edge(id=1, u=0, v=1, c=16, forward=True), Edge(id=2, u=0, v=2, c=13, forward=True), Edge(id=5, u=1, v=3, c=12, forward=True), Edge(id=6, u=2, v=4, c=14, forward=True), Edge(id=8, u=4, v=3, c=7, forward=True), Edge(id=9, u=3, v=5, c=20, forward=True), Edge(id=10, u=4, v=5, c=4, forward=True)])
+
+    def weight_fn(e: Edge):
+        return 1 if e in in_flow_solution else 100
+
+    compare_answers(GEEKS_FOR_GEEKS_GRAPH, weight_fn=weight_fn)
+
+
+@pytest.mark.paper
+@bench
+def test_weight_function_weight_impact_example():
+    graph = """3 2 1 2
+0-(1)>1
+1-(1)>2"""
+
+    def weight_fn(e: Edge):
+        return 8 if (e.u, e.v) == (0, 1) else 1
+
+    compare_answers(graph, weight_fn=weight_fn)
+
+
+@pytest.mark.paper
+@bench
+def test_low_h_in_ranked_graph():
+    graph = """14 48 0 13
+0-(1)>1
+0-(1)>2
+0-(1)>3
+0-(1)>4
+0-(1)>5
+0-(1)>6
+1-(1)>7
+1-(1)>8
+1-(1)>9
+1-(1)>10
+1-(1)>11
+1-(1)>12
+2-(1)>7
+2-(1)>8
+2-(1)>9
+2-(1)>10
+2-(1)>11
+2-(1)>12
+3-(1)>7
+3-(1)>8
+3-(1)>9
+3-(1)>10
+3-(1)>11
+3-(1)>12
+4-(1)>7
+4-(1)>8
+4-(1)>9
+4-(1)>10
+4-(1)>11
+4-(1)>12
+5-(1)>7
+5-(1)>8
+5-(1)>9
+5-(1)>10
+5-(1)>11
+5-(1)>12
+6-(1)>7
+6-(1)>8
+6-(1)>9
+6-(1)>10
+6-(1)>11
+6-(1)>12
+7-(1)>13
+8-(1)>13
+9-(1)>13
+10-(1)>13
+11-(1)>13
+12-(1)>13"""
+
+    compare_answers(graph, h=1)
+
+@pytest.mark.paper
+@bench
+def test_uses_reverse_edge():
+    graph = """6 7 0 5
+0-(1)>1
+0-(1)>3
+1-(1)>2
+3-(1)>2
+1-(1)>4
+4-(1)>5
+2-(1)>5"""
+
+    compare_answers(graph, h=3)
