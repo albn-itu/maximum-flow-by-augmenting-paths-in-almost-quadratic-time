@@ -253,6 +253,7 @@ function initializeDisplay() {
   setLegendColor("#legend-saturated-edge", SATURATED_EDGE_COLOR);
   setLegendColor("#legend-aug-edge", AUG_EDGE_COLOR);
   setLegendColor("#legend-inadmissible-edge", null, `dashed black`);
+  setLegendColor("#legend-reverse", null, `solid black`);
 
   const mkMarkers = (id, color) => {
     mkMarker(id, color);
@@ -346,6 +347,9 @@ function initializeDisplay() {
 
 const STROKE_WIDTH = 2;
 
+const isAdmissible = (d) => curFrame().edges[d.id].admissible;
+const isRevAdmissible = (d) => curFrame().edges[d.id].reverseAdmissible;
+
 // update the display based on the forces (but not positions)
 function updateDisplay() {
   const f = curFrame();
@@ -375,6 +379,8 @@ function updateDisplay() {
   };
 
   const edgeMarker = (d) => {
+    if (!isAdmissible(d) && isRevAdmissible(d)) return "none";
+
     let color = "";
     if (f.augmentingPath.includes(d.id)) color = "-aug";
     else if (f.edges[d.id].remainingCapacity === 0) color = "-saturated";
@@ -383,7 +389,7 @@ function updateDisplay() {
   };
 
   const edgeMarkerStart = (d) => {
-    if (!f.edges[d.id].reverseAdmissible) return "none";
+    if (!isRevAdmissible(d)) return "none";
 
     let color = "";
     if (f.augmentingPath.includes(d.id)) color = "-aug";
@@ -400,7 +406,9 @@ function updateDisplay() {
     .attr("marker-start", edgeMarkerStart)
     .attr("marker-end", edgeMarker)
     .attr("opacity", forceProperties.link.enabled ? 1 : 0)
-    .attr("stroke-dasharray", (d) => (f.edges[d.id].admissible ? "0,0" : "4"))
+    .attr("stroke-dasharray", (d) =>
+      isAdmissible(d) || isRevAdmissible(d) ? "0,0" : "4",
+    )
     .attr("text-anchor", "middle");
 
   edgelabels
@@ -461,8 +469,6 @@ const colors = [
 
 // update the display positions after each simulation tick
 function ticked() {
-  const f = curFrame();
-
   // Some vector math to have the tip on the edge of the vertex circle instead of
   // at the center of it. For the sake of arrow heads.
   const calcEdgeEndpoints = (d) => {
@@ -471,11 +477,11 @@ function ticked() {
       return scale(free([d.source, d.target]), r);
     };
 
-    let edgySource = makeDelta(
-      d.source,
-      f.edges[d.id].reverseAdmissible ? 1 : -1,
+    let edgySource = makeDelta(d.source, isRevAdmissible(d) ? 1 : -1);
+    let edgyTarget = makeDelta(
+      d.target,
+      !isAdmissible(d) && isRevAdmissible(d) ? -1 : 1,
     );
-    let edgyTarget = makeDelta(d.target, 1);
     if (d.bidirectional) {
       edgySource = rotate(edgySource, -Math.PI / 2 / 5);
       edgyTarget = rotate(edgyTarget, Math.PI / 2 / 5);
