@@ -222,6 +222,22 @@ const mkMarker = (id, color) => {
     .attr("d", "M 0 0 6 3 0 6");
 };
 
+const mkRevMarker = (id, color) => {
+  svg
+    .append("svg:defs")
+    .append("svg:marker")
+    .attr("id", id)
+    .attr("refX", 3)
+    .attr("refY", 3)
+    .attr("markerWidth", 50)
+    .attr("markerHeight", 50)
+    .attr("orient", "auto-start-reverse")
+    .append("path")
+    .style("stroke", color)
+    .style("fill", "white")
+    .attr("d", "M 0 0 6 3 0 6 1.5 3 0 0");
+};
+
 // generate the svg objects and force simulation
 function initializeDisplay() {
   const setLegendColor = (id, color = null, border = null) => {
@@ -238,10 +254,15 @@ function initializeDisplay() {
   setLegendColor("#legend-aug-edge", AUG_EDGE_COLOR);
   setLegendColor("#legend-inadmissible-edge", null, `dashed black`);
 
-  mkMarker("arrowhead", EDGE_COLOR);
-  mkMarker("arrowhead-aug", AUG_EDGE_COLOR);
-  mkMarker("arrowhead-saturated", SATURATED_EDGE_COLOR);
-  mkMarker("arrowhead-used", USED_EDGE_COLOR);
+  const mkMarkers = (id, color) => {
+    mkMarker(id, color);
+    mkRevMarker(`${id}-rev`, color);
+  };
+
+  mkMarkers("arrowhead", EDGE_COLOR);
+  mkMarkers("arrowhead-aug", AUG_EDGE_COLOR);
+  mkMarkers("arrowhead-saturated", SATURATED_EDGE_COLOR);
+  mkMarkers("arrowhead-used", USED_EDGE_COLOR);
 
   // set the data and properties of link lines
   link = svg
@@ -361,11 +382,22 @@ function updateDisplay() {
     return `url(#arrowhead${color})`;
   };
 
+  const edgeMarkerStart = (d) => {
+    if (!f.edges[d.id].reverseAdmissible) return "none";
+
+    let color = "";
+    if (f.augmentingPath.includes(d.id)) color = "-aug";
+    else if (f.edges[d.id].remainingCapacity === 0) color = "-saturated";
+    else if (f.edges[d.id].flow > 0) color = "-used";
+    return `url(#arrowhead${color}-rev)`;
+  };
+
   const edgeWidth = (d) => (f.augmentingPath.includes(d.id) ? 1.5 : 1);
 
   link
     .attr("stroke-width", edgeWidth)
     .attr("stroke", edgeColor)
+    .attr("marker-start", edgeMarkerStart)
     .attr("marker-end", edgeMarker)
     .attr("opacity", forceProperties.link.enabled ? 1 : 0)
     .attr("stroke-dasharray", (d) => (f.edges[d.id].admissible ? "0,0" : "4"))
@@ -379,6 +411,8 @@ function updateDisplay() {
       }
       return `${f.edges[d.id].flow}/${d.capacity}`;
     });
+
+  ticked();
 }
 
 // Some useful vector math functions
@@ -427,6 +461,8 @@ const colors = [
 
 // update the display positions after each simulation tick
 function ticked() {
+  const f = curFrame();
+
   // Some vector math to have the tip on the edge of the vertex circle instead of
   // at the center of it. For the sake of arrow heads.
   const calcEdgeEndpoints = (d) => {
@@ -435,7 +471,10 @@ function ticked() {
       return scale(free([d.source, d.target]), r);
     };
 
-    let edgySource = makeDelta(d.source, -1);
+    let edgySource = makeDelta(
+      d.source,
+      f.edges[d.id].reverseAdmissible ? 1 : -1,
+    );
     let edgyTarget = makeDelta(d.target, 1);
     if (d.bidirectional) {
       edgySource = rotate(edgySource, -Math.PI / 2 / 5);

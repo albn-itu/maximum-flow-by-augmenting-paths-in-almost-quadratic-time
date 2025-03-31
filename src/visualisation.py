@@ -144,7 +144,8 @@ def write_custom_frame_into(instance: "WeightedPushRelabel", output: dict, label
             "flow": instance.f.get(e, 0),
             "remainingCapacity": instance.c_f(e),
             "weight": instance.w(e),
-            "admissible": e in instance.admissible_outgoing[e.start()]
+            "admissible": e in instance.admissible_outgoing[e.start()],
+            "reverseAdmissible": e.reversed() in instance.admissible_outgoing[e.end()]
         }
 
     for v in instance.G.V:
