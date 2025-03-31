@@ -87,6 +87,24 @@ SIMOLEAN_GRAPH = """
 4-(3)>5
 """
 
+# Reverse edge graph
+REVERSE_GRAPH = """
+12 13 0 3
+0-(10)>1
+1-(1)>2
+2-(10)>3
+0-(10)>4
+4-(10)>5
+5-(10)>6
+6-(10)>7
+7-(10)>8
+8-(10)>2
+1-(10)>9
+9-(10)>10
+10-(10)>11
+11-(10)>3
+"""
+
 INPUT_EXPECTED = [
     pytest.param(CP_ALGORITHMS_GRAPH, 10, id="CP_ALGORITHMS_GRAPH"),
     pytest.param(GEEKS_FOR_GEEKS_GRAPH, 23, id="GEEKS_FOR_GEEKS_GRAPH"),
@@ -97,9 +115,11 @@ INPUT_EXPECTED = [
     pytest.param(IDK_GRAPH, 23, id="IDK_GRAPH"),
     pytest.param(THORES_FRACTIONAL_GRAPH, 1, id="THORES_FRACTIONAL_GRAPH"),
     pytest.param(SIMOLEAN_GRAPH, 10, id="SIMOLEAN_GRAPH"),
+    pytest.param(REVERSE_GRAPH, 20, id="REVERSE_GRAPH"),
 ]
 
 INPUT_EXPECTED_DAG = [
     pytest.param(CP_ALGORITHMS_GRAPH, 10, id="CP_ALGORITHMS_GRAPH"),
     pytest.param(SIMOLEAN_GRAPH, 10, id="SIMOLEAN_GRAPH"),
+    pytest.param(REVERSE_GRAPH, 20, id="REVERSE_GRAPH"),
 ]
