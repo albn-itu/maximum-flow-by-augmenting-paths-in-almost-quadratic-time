@@ -646,3 +646,58 @@ function updateAll() {
   updateForces();
   updateDisplay();
 }
+
+const explanations = [
+  new Audio("components/3.mp3"),
+  new Audio("components/2.mp3"),
+];
+const backgroundExplanations = new Audio("components/1.mp3");
+const Knowldege = new Audio("components/w.mp3");
+let currentIndex = 0;
+
+const calculateTheory = async () => {
+  const currentBup = explanations[currentIndex];
+  if (!currentBup.paused) {
+    currentBup.pause();
+    currentBup.currentTime = 0;
+  }
+  if (!backgroundExplanations.paused) {
+    backgroundExplanations.pause();
+    backgroundExplanations.currentTime = 0;
+  }
+  backgroundExplanations.volume = Math.min(Math.random(), 0.7);
+  await currentBup.play();
+  await backgroundExplanations.play();
+  currentIndex = (currentIndex + 1) % explanations.length;
+};
+
+let KnowldegeTimeout = null;
+const calculateKnownKnowledge = async () => {
+  if (KnowldegeTimeout) {
+    clearTimeout(KnowldegeTimeout);
+  }
+  if (Knowldege.paused) {
+    Knowldege.loop = true;
+    await Knowldege.play();
+  } else {
+    Knowldege.loop = true;
+  }
+};
+
+const invalidateKnownKnowledge = async () => {
+  Knowldege.loop = false;
+  Knowldege.pause();
+
+  KnowldegeTimeout = setTimeout(() => {
+    Knowldege.currentTime = 0;
+  }, 500);
+};
+
+const inputs = document.querySelectorAll("input");
+for (const input of inputs) {
+  input.addEventListener("change", calculateTheory);
+  if (input.type == "range") {
+    input.addEventListener("mousedown", calculateKnownKnowledge);
+    input.addEventListener("mouseup", invalidateKnownKnowledge);
+  }
+}
