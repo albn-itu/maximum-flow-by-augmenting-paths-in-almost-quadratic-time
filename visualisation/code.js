@@ -566,6 +566,9 @@ const fitViewBox = () => {
 //////////// UI EVENTS ////////////
 
 function dragstarted(d) {
+  logMousePos(d);
+  playWeeSound();
+
   if (!config.enableSimulation) return;
 
   if (!d3.event.active) simulation.alphaTarget(0.3).restart();
@@ -574,6 +577,7 @@ function dragstarted(d) {
 }
 
 function dragged(d) {
+  updateVolumeBasedOnMouse(d);
   if (config.enableSimulation) {
     d.fx = d3.event.x;
     d.fy = d3.event.y;
@@ -585,6 +589,9 @@ function dragged(d) {
 }
 
 function dragended(d) {
+  clearMousePos();
+  stopWeeSound();
+
   if (config.enableSimulation) {
     if (!d3.event.active) simulation.alphaTarget(0.0001);
     d.fx = null;
@@ -611,33 +618,40 @@ d3.select(window).on("keypress", () => {
     const newVal = Math.min(config.frame + 1, graph.frames.length - 1);
     d3.select("#frameSlider").property("value", newVal);
     onFramePick(newVal);
+    playBup();
   }
 
   if (key === "h") {
     const newVal = Math.max(config.frame - 1, 0);
     d3.select("#frameSlider").property("value", newVal);
     onFramePick(newVal);
+    playBup();
   }
 
   if (key === "e") {
     document.querySelector("#edge-labels-checkbox").click();
+    playBup();
   }
 
   if (key === "v") {
     document.querySelector("#vertex-labels-checkbox").click();
+    playBup();
   }
 
   if (key === "k") {
     document.querySelector("#vertex-heights-checkbox").click();
+    playBup();
   }
 
   if (key === "w") {
     config.showWeightsAsEdgeLabels = !config.showWeightsAsEdgeLabels;
     updateDisplay();
+    playBup();
   }
 
   if (key === "r") {
     fitViewBox();
+    playBup();
   }
 });
 
@@ -645,4 +659,84 @@ d3.select(window).on("keypress", () => {
 function updateAll() {
   updateForces();
   updateDisplay();
+}
+
+const explanations = [
+  new Audio("components/3.mp3"),
+  new Audio("components/2.mp3"),
+];
+const backgroundExplanations = new Audio("components/1.mp3");
+const wee = new Audio("components/w.mp3");
+let currentIndex = 0;
+
+const playBup = async () => {
+  const currentBup = explanations[currentIndex];
+  if (!currentBup.paused) {
+    currentBup.pause();
+    currentBup.currentTime = 0;
+  }
+  if (!backgroundExplanations.paused) {
+    backgroundExplanations.pause();
+    backgroundExplanations.currentTime = 0;
+  }
+  backgroundExplanations.volume = Math.min(Math.random(), 0.7);
+  await currentBup.play();
+  await backgroundExplanations.play();
+  currentIndex = (currentIndex + 1) % explanations.length;
+};
+
+let weeTimeout = null;
+let mousePos = null;
+const playWeeSound = async () => {
+  if (weeTimeout) {
+    clearTimeout(weeTimeout);
+  }
+  if (wee.paused) {
+    wee.loop = true;
+    await wee.play();
+  } else {
+    wee.loop = true;
+  }
+};
+
+const stopWeeSound = async () => {
+  wee.loop = false;
+  wee.pause();
+
+  weeTimeout = setTimeout(() => {
+    wee.currentTime = 0;
+  }, 500);
+};
+
+const updateVolume = (e) => {
+  wee.volume = Math.min(e.target.value / e.target.max + 0.1, 1);
+};
+
+const logMousePos = (e) => {
+  mousePos = [e.x, e.y];
+};
+
+const clearMousePos = () => {
+  mousePos = null;
+};
+
+const updateVolumeBasedOnMouse = (e) => {
+  if (!mousePos) return;
+  const xDiff = e.x - mousePos[0];
+  const yDiff = e.y - mousePos[1];
+
+  wee.volume = Math.max(
+    Math.min((Math.pow(xDiff, 2) + Math.pow(yDiff, 2)) / 10_000, 1),
+    0.2
+  );
+};
+
+const inputs = document.querySelectorAll("input");
+for (const input of inputs) {
+  input.addEventListener("change", playBup);
+  if (input.type == "range") {
+    input.addEventListener("input", updateVolume);
+    input.addEventListener("mousedown", playWeeSound);
+    input.addEventListener("mouseup", stopWeeSound);
+  }
 }
