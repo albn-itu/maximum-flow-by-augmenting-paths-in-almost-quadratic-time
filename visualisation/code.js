@@ -382,7 +382,8 @@ function updateDisplay() {
     if (!isAdmissible(d) && isRevAdmissible(d)) return "none";
 
     let color = "";
-    if (f.augmentingPath.includes(d.id)) color = "-aug";
+    if (f.augmentingPath.includes(d.id) || f.augmentingPath.includes(-d.id))
+      color = "-aug";
     else if (f.edges[d.id].remainingCapacity === 0) color = "-saturated";
     else if (f.edges[d.id].flow > 0) color = "-used";
     return `url(#arrowhead${color})`;
@@ -392,13 +393,17 @@ function updateDisplay() {
     if (!isRevAdmissible(d)) return "none";
 
     let color = "";
-    if (f.augmentingPath.includes(d.id)) color = "-aug";
+    if (f.augmentingPath.includes(d.id) || f.augmentingPath.includes(-d.id))
+      color = "-aug";
     else if (f.edges[d.id].remainingCapacity === 0) color = "-saturated";
     else if (f.edges[d.id].flow > 0) color = "-used";
     return `url(#arrowhead${color}-rev)`;
   };
 
-  const edgeWidth = (d) => (f.augmentingPath.includes(d.id) ? 1.5 : 1);
+  const edgeWidth = (d) =>
+    f.augmentingPath.includes(d.id) || f.augmentingPath.includes(-d.id)
+      ? 1.5
+      : 1;
 
   link
     .attr("stroke-width", edgeWidth)
