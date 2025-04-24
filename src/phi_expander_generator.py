@@ -18,7 +18,7 @@ class Graph:
 
 
 def generate_phi_expander(phi=None):
-    for _ in range(10_000):
+    for _ in range(100_000):
         graph = generate_random_graph()
 
         phii = phi if phi is not None else 2 ** (-math.sqrt(
@@ -80,10 +80,10 @@ def is_phi_expander(g: Graph, phi: float):
     expanding = not has_phi_sparse_cut()
 
     quality = min([c["quality"] for c in checks])
-    # if phi <= quality:
-    #     print(f"SUCCESS: ϕ={phi:.8f} <= {quality:.8f}")
-    # else:
-    #     print(f"FAILURE: ϕ={phi:.8f} > {quality:.8f}")
+    if phi <= quality:
+        print(f"SUCCESS: ϕ={phi:.8f} <= {quality:.8f}")
+    else:
+        print(f"FAILURE: ϕ={phi:.8f} > {quality:.8f}")
 
     return expanding, quality
 
@@ -119,8 +119,8 @@ def generate_random_graph() -> Graph:
 
 
 if __name__ == "__main__":
-    expander = generate_phi_expander()
+    expander, quality = generate_phi_expander()
 
-    print(expander)
+    print(f"{quality}-expander", expander)
     print()
     print("\n".join([f"{e[0]}>{e[1]}" for e in expander.edges]))
