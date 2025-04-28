@@ -32,16 +32,7 @@ class WeightedPushRelabel:
         default_factory=set
     )
 
-    # Our state
-    outgoing: dict[Vertex, set[Edge]] = field(default_factory=dict)
-    incoming: dict[Vertex, set[Edge]] = field(default_factory=dict)
-    incident: dict[Vertex, set[Edge]] = field(default_factory=dict)
-
     def solve(self) -> tuple[int, dict[Edge, int]]:
-        self.outgoing, self.incoming, self.incident = make_outgoing_incoming(
-            self.G, self.c
-        )
-
         self.f = defaultdict(int)
         self.l = {v: 0 for v in self.G.V}
         self.alive = set(self.G.V)
@@ -58,16 +49,21 @@ class WeightedPushRelabel:
             },
         )
 
-        all_edges: set[Edge] = set(e for edges in self.outgoing.values() for e in edges)
+        all_edges: set[Edge] = set(
+            e for edges in self.G.outgoing.values() for e in edges
+        )
         # Shorthands
         w = {e: self.w(e.forward_edge()) for e in all_edges}
         h = self.h
         f, l, c_f = self.f, self.l, self.c_f
 
         def relabel(v: Vertex):
-            edges = self.incident[v]
+            edges = self.G.incident[v]
 
-            l[v] = min((next_multiple_of(n=l[v], multiple_of=w[e]) for e in edges), default=9*h+1)
+            l[v] = min(
+                (next_multiple_of(n=l[v], multiple_of=w[e]) for e in edges),
+                default=9 * h + 1,
+            )
 
             benchmark.register_or_update(
                 "blik.highest_level", l[v], lambda x: max(x, l[v])
@@ -143,9 +139,14 @@ class WeightedPushRelabel:
                         benchmark.get_or_default(from_key, 0) or 0,
                         lambda x: benchmark.get_or_default(to_key, 0) or 0,
                     )
+
                 transfer_bench_key("blik.relabels", "blik.before_kill.relabels")
-                transfer_bench_key("blik.marked_admissible", "blik.before_kill.marked_admissible")
-                transfer_bench_key("blik.marked_inadmissible", "blik.before_kill.marked_inadmissible")
+                transfer_bench_key(
+                    "blik.marked_admissible", "blik.before_kill.marked_admissible"
+                )
+                transfer_bench_key(
+                    "blik.marked_inadmissible", "blik.before_kill.marked_inadmissible"
+                )
 
                 graphviz_frame(self, "After pushing")
                 write_custom_frame_into(self, vis, label="After pushing")
@@ -194,8 +195,8 @@ class WeightedPushRelabel:
 
     # This is exactly B^TG(v) from the paper - or alternatively "-f^out(v)".
     def net_flow(self, v: Vertex) -> int:
-        recv = sum(self.f.get(e, 0) for e in self.incoming[v])
-        send = sum(self.f.get(e, 0) for e in self.outgoing[v])
+        recv = sum(self.f.get(e, 0) for e in self.G.incoming[v])
+        send = sum(self.f.get(e, 0) for e in self.G.outgoing[v])
         return recv - send
 
     def residual_source(self, v: Vertex) -> int:
@@ -245,13 +246,12 @@ class WeightedPushRelabel:
         amount = 0
         for s in self.sources:
             if self.sources[s] > 0:
-                amount += sum(f.get(e, 0) for e in self.outgoing[s])
+                amount += sum(f.get(e, 0) for e in self.G.outgoing[s])
         return amount
 
 
 def weighted_push_relabel(
     G: Graph,
-    c: list[int],
     sources: list[int],
     sinks: list[int],
     w: Callable[[Edge], int],
@@ -265,15 +265,35 @@ def weighted_push_relabel(
     w: weight function for edges
     h: height parameter
     """
-    start = time.time_ns()
-
     _sources = {v: sources[i] for i, v in enumerate(G.V)}
     _sinks = {v: sinks[i] for i, v in enumerate(G.V)}
-    res = WeightedPushRelabel(G, c, _sources, _sinks, w, h).solve()
+    res = weighted_push_relabel_dict(G, _sources, _sinks, w, h)
+
+    return res
+
+
+def weighted_push_relabel_dict(
+    G: Graph,
+    sources: dict[Vertex, int],
+    sinks: dict[Vertex, int],
+    w: Callable[[Edge], int],
+    h: int,
+) -> tuple[int, dict[Edge, int]]:
+    """
+    G: a graph (V, E)
+    c: capacities for each edge
+    sources: source nodes providing flow
+    sinks: sink nodes receiving flow
+    w: weight function for edges
+    h: height parameter
+    """
+    start = time.time_ns()
+
+    res = WeightedPushRelabel(G, sources, sinks, w, h).solve()
 
     end = time.time_ns()
     benchmark.register(f"blik.duration_s", (end - start) / 1e9)
-     
+
     return res
 
 
@@ -295,30 +315,9 @@ class AliveSaturatedVerticesWithNoAdmissibleOutEdges:
         raise StopIteration
 
 
-def make_outgoing_incoming(
-    G: Graph, c: list[int]
-) -> tuple[dict[Vertex, set[Edge]], dict[Vertex, set[Edge]], dict[Vertex, set[Edge]]]:
-    outgoing: dict[Vertex, set[Edge]] = {u: set() for u in G.V}
-    incoming: dict[Vertex, set[Edge]] = {u: set() for u in G.V}
-
-    for i, ((u, v), cap) in enumerate(zip(G.E, c)):
-        e = Edge(id=i + 1, u=u, v=v, c=cap, forward=True)
-        e_rev = e.reversed()
-
-        outgoing[u].add(e)
-        outgoing[v].add(e_rev)
-        incoming[u].add(e_rev)
-        incoming[v].add(e)
-
-    incident = {u: outgoing[u] | incoming[u] for u in G.V}
-
-    return outgoing, incoming, incident
-
-
 if __name__ == "__main__":
     mf, res = weighted_push_relabel(
-        Graph(V=[0, 1, 2], E=[(0, 1), (1, 2)]),
-        c=[1, 1],
+        Graph(V=[0, 1, 2], E=[(0, 1), (1, 2)], c=[1, 1]),
         sources=[1, 0, 0],
         sinks=[0, 0, 1],
         w=lambda e: 1,
