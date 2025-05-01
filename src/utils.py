@@ -54,6 +54,12 @@ class Graph:
             self, self.c
         )
 
+    def volume(self, v: int) -> int:
+        """
+        Returns the volume of the vertex v.
+        """
+        return sum(edge.c for edge in self.incident[v] if edge.forward)
+
 
 def make_outgoing_incoming(
     G: Graph, c: list[int]

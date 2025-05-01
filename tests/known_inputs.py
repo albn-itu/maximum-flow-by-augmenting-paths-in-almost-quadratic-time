@@ -105,6 +105,42 @@ REVERSE_GRAPH = """
 11-(10)>3
 """
 
+POSSIBLY_INTERESTING_GRAPH = """
+13 18 0 11
+0-(1)>1
+0-(1)>2
+0-(1)>6
+1-(1)>3
+2-(1)>1
+2-(1)>5
+3-(1)>2
+3-(1)>4
+4-(1)>6
+4-(1)>5
+5-(1)>6
+5-(1)>7
+6-(1)>7
+6-(1)>8
+7-(1)>8
+7-(1)>9
+8-(1)>10
+9-(1)>11
+10-(1)>11
+"""
+
+ADRIANS_ZIP_BOMB = """
+6 9 0 5
+0-(1)>1
+1-(1)>3
+1-(1)>5
+2-(1)>0
+2-(1)>5
+3-(1)>1
+3-(1)>2
+4-(1)>3
+5-(1)>4
+"""
+
 INPUT_EXPECTED = [
     pytest.param(CP_ALGORITHMS_GRAPH, 10, id="CP_ALGORITHMS_GRAPH"),
     pytest.param(GEEKS_FOR_GEEKS_GRAPH, 23, id="GEEKS_FOR_GEEKS_GRAPH"),
@@ -116,6 +152,8 @@ INPUT_EXPECTED = [
     pytest.param(THORES_FRACTIONAL_GRAPH, 1, id="THORES_FRACTIONAL_GRAPH"),
     pytest.param(SIMOLEAN_GRAPH, 10, id="SIMOLEAN_GRAPH"),
     pytest.param(REVERSE_GRAPH, 20, id="REVERSE_GRAPH"),
+    pytest.param(POSSIBLY_INTERESTING_GRAPH, 2, id="POSSIBLY_INTERESTING_GRAPH"),
+    pytest.param(ADRIANS_ZIP_BOMB, 1, id="ADRIANS_ZIP_BOMB"),
 ]
 
 INPUT_EXPECTED_DAG = [

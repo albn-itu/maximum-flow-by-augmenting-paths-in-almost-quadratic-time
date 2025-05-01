@@ -25,7 +25,7 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-addopts = "-m \"paper and not notdag and not correct and not maxflow and not large and not benchmark and not waissi\""
+addopts = "-m \"(paper or sparse_cut) and not notdag and not correct and not maxflow and not large and not benchmark and not waissi\""
 
 markers = [
     "paper: tests for the paper algorithm (deselect with '-m \"not paper\"')",
@@ -37,6 +37,7 @@ markers = [
     "w_top_sort: uses a topological-sort based weight function",
     "benchmark: marks tests as benchmarks",
     "expander: graphs with expanders",
+    "sparse_cut: sparse_cut tests",
 ]
 
 [tool.ruff.lint]
