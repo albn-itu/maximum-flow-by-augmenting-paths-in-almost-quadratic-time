@@ -252,6 +252,7 @@ class WeightedPushRelabel:
 
 def weighted_push_relabel(
     G: Graph,
+    c: list[int],
     sources: list[int],
     sinks: list[int],
     w: Callable[[Edge], int],
@@ -267,13 +268,14 @@ def weighted_push_relabel(
     """
     _sources = {v: sources[i] for i, v in enumerate(G.V)}
     _sinks = {v: sinks[i] for i, v in enumerate(G.V)}
-    res = weighted_push_relabel_dict(G, _sources, _sinks, w, h)
+    res = weighted_push_relabel_dict(G, c, _sources, _sinks, w, h)
 
     return res
 
 
 def weighted_push_relabel_dict(
     G: Graph,
+    c: list[int],
     sources: dict[Vertex, int],
     sinks: dict[Vertex, int],
     w: Callable[[Edge], int],
@@ -289,7 +291,7 @@ def weighted_push_relabel_dict(
     """
     start = time.time_ns()
 
-    res = WeightedPushRelabel(G, sources, sinks, w, h).solve()
+    res = WeightedPushRelabel(G, c, sources, sinks, w, h).solve()
 
     end = time.time_ns()
     benchmark.register(f"blik.duration_s", (end - start) / 1e9)

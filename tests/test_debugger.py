@@ -1,15 +1,23 @@
 from src.utils import Edge
 from tests.known_inputs import GEEKS_FOR_GEEKS_GRAPH
 from tests.scripts.generator_dag import make_random_dag
-from tests.utils import bench, parse_input, run_test, run_test_with_topsort, wrap_correct
+from tests.utils import (
+    bench,
+    parse_input,
+    run_test,
+    run_test_with_topsort,
+    wrap_correct,
+)
 from src.weighted_push_relabel import weighted_push_relabel
 import pytest
 
 
-def compare_answers(input: str, h: int | None = None, topsort: bool = False, weight_fn=None):
-    g, c, sources, sinks = parse_input(input, 10_000)
+def compare_answers(
+    input: str, h: int | None = None, topsort: bool = False, weight_fn=None
+):
+    g, sources, sinks = parse_input(input, 10_000)
     h = h if h is not None else len(g.V)
-    mf, _ = wrap_correct(g, c, sources, sinks, lambda _: 1, h)
+    mf, _ = wrap_correct(g, sources, sinks, lambda _: 1, h)
 
     print("Correct answer:", mf)
 
@@ -162,9 +170,9 @@ expander_hieararchytfj = r"""23 51 0 19
 @pytest.mark.paper
 @bench
 def test_example_dag_expandeerererr_with_weight_fn():
-    g, c, sources, sinks = parse_input(expander_hieararchytfj, 10_000)
+    g, sources, sinks = parse_input(expander_hieararchytfj, 10_000)
     h = len(g.V) // 4
-    mf, _ = wrap_correct(g, c, sources, sinks, lambda _: 1, h)
+    mf, _ = wrap_correct(g, sources, sinks, lambda _: 1, h)
 
     print("h:", h)
     print("Correct answer:", mf)
@@ -172,16 +180,17 @@ def test_example_dag_expandeerererr_with_weight_fn():
     def weight_fn(e: Edge):
         return abs(e.u - e.v)
 
-    run_test(expander_hieararchytfj, mf,
-             weighted_push_relabel, h=h, weight_fn=weight_fn)
+    run_test(
+        expander_hieararchytfj, mf, weighted_push_relabel, h=h, weight_fn=weight_fn
+    )
 
 
 @pytest.mark.paper
 @bench
 def test_example_dag_expandeerererr_without_weight_fn():
-    g, c, sources, sinks = parse_input(expander_hieararchytfj, 10_000)
+    g, sources, sinks = parse_input(expander_hieararchytfj, 10_000)
     h = len(g.V) // 7
-    mf, _ = wrap_correct(g, c, sources, sinks, lambda _: 1, h)
+    mf, _ = wrap_correct(g, sources, sinks, lambda _: 1, h)
 
     print("h:", h)
     print("Correct answer:", mf)
@@ -268,11 +277,33 @@ dimacs = """22 72 0 22
 def test_dimacs():
     compare_answers(dimacs)
 
+
 @pytest.mark.paper
 @bench
 def test_dimacs_with_weight_fn():
-    in_flow_solution = set([Edge(id=7, u=5, v=10, c=42, forward=True), Edge(id=9, u=11, v=13, c=23, forward=True), Edge(id=11, u=19, v=15, c=14, forward=True), Edge(id=16, u=16, v=11, c=8, forward=True), Edge(id=19, u=14, v=5, c=17, forward=True), Edge(id=26, u=4, v=10, c=21, forward=True), Edge(id=29, u=3, v=18, c=10, forward=True), Edge(id=36, u=6, v=22, c=38, forward=True), Edge(id=40, u=9, v=16, c=12, forward=True), Edge(
-        id=43, u=15, v=22, c=10, forward=True), Edge(id=47, u=4, v=14, c=43, forward=True), Edge(id=52, u=0, v=4, c=31, forward=True), Edge(id=53, u=9, v=3, c=19, forward=True), Edge(id=55, u=13, v=6, c=13, forward=True), Edge(id=57, u=4, v=19, c=15, forward=True), Edge(id=60, u=10, v=22, c=36, forward=True), Edge(id=62, u=0, v=9, c=21, forward=True), Edge(id=69, u=9, v=15, c=6, forward=True), Edge(id=71, u=18, v=5, c=11, forward=True)])
+    in_flow_solution = set(
+        [
+            Edge(id=7, u=5, v=10, c=42, forward=True),
+            Edge(id=9, u=11, v=13, c=23, forward=True),
+            Edge(id=11, u=19, v=15, c=14, forward=True),
+            Edge(id=16, u=16, v=11, c=8, forward=True),
+            Edge(id=19, u=14, v=5, c=17, forward=True),
+            Edge(id=26, u=4, v=10, c=21, forward=True),
+            Edge(id=29, u=3, v=18, c=10, forward=True),
+            Edge(id=36, u=6, v=22, c=38, forward=True),
+            Edge(id=40, u=9, v=16, c=12, forward=True),
+            Edge(id=43, u=15, v=22, c=10, forward=True),
+            Edge(id=47, u=4, v=14, c=43, forward=True),
+            Edge(id=52, u=0, v=4, c=31, forward=True),
+            Edge(id=53, u=9, v=3, c=19, forward=True),
+            Edge(id=55, u=13, v=6, c=13, forward=True),
+            Edge(id=57, u=4, v=19, c=15, forward=True),
+            Edge(id=60, u=10, v=22, c=36, forward=True),
+            Edge(id=62, u=0, v=9, c=21, forward=True),
+            Edge(id=69, u=9, v=15, c=6, forward=True),
+            Edge(id=71, u=18, v=5, c=11, forward=True),
+        ]
+    )
 
     def weight_fn(e: Edge):
         return 1 if e in in_flow_solution else 25
@@ -289,7 +320,17 @@ def test_geeks_for_geeks_weight_fn_no():
 @pytest.mark.paper
 @bench
 def test_geeks_for_geeks_weight_fn_with_w():
-    in_flow_solution = set([Edge(id=1, u=0, v=1, c=16, forward=True), Edge(id=2, u=0, v=2, c=13, forward=True), Edge(id=5, u=1, v=3, c=12, forward=True), Edge(id=6, u=2, v=4, c=14, forward=True), Edge(id=8, u=4, v=3, c=7, forward=True), Edge(id=9, u=3, v=5, c=20, forward=True), Edge(id=10, u=4, v=5, c=4, forward=True)])
+    in_flow_solution = set(
+        [
+            Edge(id=1, u=0, v=1, c=16, forward=True),
+            Edge(id=2, u=0, v=2, c=13, forward=True),
+            Edge(id=5, u=1, v=3, c=12, forward=True),
+            Edge(id=6, u=2, v=4, c=14, forward=True),
+            Edge(id=8, u=4, v=3, c=7, forward=True),
+            Edge(id=9, u=3, v=5, c=20, forward=True),
+            Edge(id=10, u=4, v=5, c=4, forward=True),
+        ]
+    )
 
     def weight_fn(e: Edge):
         return 1 if e in in_flow_solution else 100
@@ -364,6 +405,7 @@ def test_low_h_in_ranked_graph():
 12-(1)>13"""
 
     compare_answers(graph, h=1)
+
 
 @pytest.mark.paper
 @bench

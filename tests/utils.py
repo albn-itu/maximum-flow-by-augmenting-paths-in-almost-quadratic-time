@@ -73,7 +73,7 @@ def wrap_correct(
 
 
 FlowFn = Callable[
-    [Graph, list[int], list[int], Callable[[Edge], int], int],
+    [Graph, list[int], list[int], list[int], Callable[[Edge], int], int],
     tuple[int, dict[Edge, int] | None],
 ]
 
@@ -92,7 +92,7 @@ def run_test(
 
     g, sources, sinks = parse_input(input, expected)
     h = h if h is not None else len(g.V) // 3
-    mf, _ = flow_fn(g, sources, sinks, weight_fn, h)
+    mf, _ = flow_fn(g, g.c, sources, sinks, weight_fn, h)
     benchmark.register("bench_config.expected", expected)
     assert mf == expected, f"Expected {expected}, got {mf}"
 
