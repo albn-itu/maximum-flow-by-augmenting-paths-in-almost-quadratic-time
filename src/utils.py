@@ -69,4 +69,6 @@ def topological_sort(G: Graph) -> list[Vertex]:
 
 
 def next_multiple_of(n: int, multiple_of: int) -> int:
+    if multiple_of == 0:
+        return n + 1
     return n + multiple_of - n % multiple_of
