@@ -160,6 +160,7 @@
           pkgs.mkShell {
             packages = [
               virtualenv
+              pkgs.svg2tikz
               pkgs.uv
             ];
 

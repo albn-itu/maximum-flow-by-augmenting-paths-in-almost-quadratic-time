@@ -25,7 +25,7 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-addopts = "-m \"(paper or sparse_cut) and not notdag and not correct and not maxflow and not large and not benchmark and not waissi\""
+addopts = "-m \"(paper or sparse_cut or expander_decomposition) and not notdag and not correct and not maxflow and not large and not benchmark and not waissi\""
 
 markers = [
     "paper: tests for the paper algorithm (deselect with '-m \"not paper\"')",
@@ -38,6 +38,7 @@ markers = [
     "benchmark: marks tests as benchmarks",
     "expander: graphs with expanders",
     "sparse_cut: sparse_cut tests",
+    "expander_decomposition: expander_decomposition tests",
 ]
 
 [tool.ruff.lint]

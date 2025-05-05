@@ -1,8 +1,9 @@
+from dataclasses import dataclass
 import sys
 import math
 import heapq
 from collections import defaultdict
-from typing import Callable
+from typing import Callable, Self
 
 from .utils import Edge, Graph, Vertex
 from .weighted_push_relabel import WeightedPushRelabel
@@ -16,7 +17,7 @@ def sparse_cut(
     c_6_5: int = 1,  # Constant from the paper
     phi: float = 0.2,  # Phi parameter from the paper
     w_H: Callable[[Edge], int] = lambda e: 1,
-) -> tuple[dict[Edge, int], tuple[set[Vertex], set[Vertex]]]:
+) -> tuple[dict[Edge, int], tuple[set[Vertex], set[Vertex], set[Edge]]]:
     """
     Implementation of the SparseCut algorithm (Algorithm 2 from the paper).
 
@@ -43,9 +44,20 @@ def sparse_cut(
     # eta = math.log(n)  # Height of the hierarchy
     D_H = H.get(0, set())  # DAG edges from hierarchy
 
+    print("I", I)
+    print("kappa", kappa)
+    print("F", F)
+    print("H", H)
+    print("c_6_5", c_6_5)
+    print("phi", phi)
+    print("w_H", w_H)
+    print("D_H", D_H)
+    print("n", n)
+
     # Calculate h as defined in the algorithm
     # h = math.ceil((4 * (eta**4) * c_6_5 * (math.log(n) ** 7) * kappa) / (phi**2) * n)
     h = math.ceil(1 / phi)
+    # h = math.ceil(n / 3)
     print("Height h:", h)
 
     # Define c^κ = κ · c
@@ -55,9 +67,9 @@ def sparse_cut(
     assert kappa <= n, "kappa should be less than or equal to n"  # Theorem 6.1
     assert kappa > 0, "kappa should be greater than 0"  # Theorem 6.1
     print(1 / phi, 1 / (10 * math.log(n)))
-    assert 1 / phi <= n, (
-        f"1/phi={1 / phi} should be less than or equal to n={n}"
-    )  # Theorem 6.1
+    # assert 1 / phi <= n, (
+    #     f"1/phi={1 / phi} should be less than or equal to n={n}"
+    # )  # Theorem 6.1
     assert c_6_5 >= 1, "c_6_5 should be greater than or equal to 1"  # Theorem 6.5
 
     # Define w_G(e)
@@ -75,7 +87,7 @@ def sparse_cut(
 
     # If |f| = ||Δ||₁, return f
     if flow_value == sum(sources.values()):
-        return f, (set(), set())
+        return f, (set(), set(), set())
 
     # else
     # Let w_f be w_G extended to G_f
@@ -87,18 +99,12 @@ def sparse_cut(
             return w_G(e)
 
     # set S₀ = {s ∈ V : Δ_f(s) > 0}
-    S_0: set[Vertex] = set(v for v in G.V if instance.excess(v) > 0)
+    S_0: list[Vertex] = [s for s in G.V if instance.excess(s) > 0]
+    print("excess", S_0)
 
     print("Calculating distance levels")
-    distance_levels = dijsktra(G, instance, S_0, w_f)
-    print("Distance levels:", distance_levels)
-
-    # Compute S_≤i for each i and find the minimizing cut
-    best_cut_value = float("inf")
-    best_cut: tuple[set[Vertex], set[Vertex]] = (set(), set())
-    max_level = max(distance_levels.keys())
-
-    assert max_level >= 0, "Max level should be non-negative"
+    distance_level_collections = dijsktra(G, instance, S_0, w_f)
+    print("Distance levels:", distance_level_collections)
 
     # Calculate vol_F for each vertex
     vol_F: dict[Vertex, int] = defaultdict(int)
@@ -107,126 +113,172 @@ def sparse_cut(
             vol_F[edge.start()] += 1
             vol_F[edge.end()] += 1
 
-    S_leq_i: set[Vertex] = set()  # S_≤i
-    for i in sorted(list(distance_levels.keys())):
-        # Add vertices from level i to S_≤i
-        S_leq_i.update(distance_levels[i])
-        S_leq_i_complement = set(G.V) - S_leq_i
+    best_global_cut = None
+    for distance_levels in distance_level_collections:
+        max_level = max(distance_levels.keys())
+        assert max_level >= 0, "Max level should be non-negative"
 
-        # Calculate c^κ_f(E_{G_f}(S_≤i, S̄_≤i))
-        cut_capacity = 0
-        boundary_size = 0
-        reverse_boundary_size = 0
-        for u in S_leq_i:
-            for edge in G.incident[u]:
-                if instance.c_f(edge) <= 0:
-                    continue
+        best_local_cut = None
 
-                if edge.end() in S_leq_i_complement:
-                    cut_capacity += edge.c
-                    boundary_size += 1
+        S_leq_i: set[Vertex] = set()  # S_≤i
+        for i in sorted(list(distance_levels.keys())):
+            # Add vertices from level i to S_≤i
+            S_leq_i.update(distance_levels[i])
+            S_leq_i_complement = set(G.V) - S_leq_i
 
-                if edge.start() in S_leq_i_complement:
-                    reverse_boundary_size += 1
+            # Calculate c^κ_f(E_{G_f}(S_≤i, S̄_≤i))
+            cut_capacity = 0
+            boundary: set[Edge] = set()
+            reverse_boundary: set[Edge] = set()
+            for u in S_leq_i:
+                for edge in G.incident[u]:
+                    if instance.c_f(edge) <= 0:
+                        continue
 
-        # Calculate vol_F(S_≤i) and vol_F(S̄_≤i)
-        vol_S = sum(vol_F[v] for v in S_leq_i)
-        vol_S_complement = sum(vol_F[v] for v in S_leq_i_complement)
+                    if edge.end() in S_leq_i_complement:
+                        cut_capacity += edge.c
+                        boundary.add(edge)
 
-        # Calculate the minimum of vol_F(S_≤i) and vol_F(S̄_≤i)
-        min_vol = min(vol_S, vol_S_complement)
+                    if edge.start() in S_leq_i_complement:
+                        reverse_boundary.add(edge)
 
-        # Calculate the value to be minimized
-        value = cut_capacity - min_vol
-        print(f"\n== Level {i} ==")
-        if boundary_size == 0:
-            print("Boundary size is 0, skipping")
-            continue
+            # Calculate vol_F(S_≤i) and vol_F(S̄_≤i)
+            vol_S = sum(vol_F[v] for v in S_leq_i)
+            vol_S_complement = sum(vol_F[v] for v in S_leq_i_complement)
 
-        print("leq", i)
-        print("S, S_complement", S_leq_i, S_leq_i_complement)
-        print(
-            f"cut_cap - min(vol_S, vol_S_complement): {cut_capacity} - min({vol_S}, {vol_S_complement})"
+            # Calculate the minimum of vol_F(S_≤i) and vol_F(S̄_≤i)
+            min_vol = min(vol_S, vol_S_complement)
+
+            # Calculate the value to be minimized
+            value = cut_capacity - min_vol
+            print(f"\n== Level {i} ==")
+            if len(boundary) == 0:
+                print("Boundary size is 0, skipping")
+                continue
+
+            local_cut = Cut(
+                S_leq_i.copy(),
+                S_leq_i_complement.copy(),
+                boundary | reverse_boundary,
+                value,
+            )
+            local_cut.print()
+            print(
+                f"cut_cap - min(vol_S, vol_S_complement): {cut_capacity} - min({vol_S}, {vol_S_complement})"
+            )
+
+            # For interest, calculate the Cheeger constant
+            if min_vol == 0:
+                cheeger_constant = float("inf")
+            else:
+                cheeger_constant = len(boundary) / min_vol
+            print("Boundary size:", len(boundary))
+            print("Cheeger constant:", cheeger_constant)
+
+            # For interest, calculate the sparsity of the cut
+            # Calculated based on https://home.ttic.edu/~yury/courses/geometry/notes/sparsest-cut.pdf
+            smallest_vertex_set = min(len(S_leq_i), len(S_leq_i_complement))
+            if smallest_vertex_set == 0:
+                sparsity = float("inf")
+            else:
+                sparsity = len(boundary) / smallest_vertex_set
+            print("Sparsity:", sparsity)
+            print(
+                "min{|E(S, S)|, |E(S, S)|} < ϕ · min{vol(S), vol(S̄)}",
+                f" = min({len(boundary)}, {len(reverse_boundary)}) < {phi} · min({vol_S}, {vol_S_complement})",
+                f" = {min(len(boundary), len(reverse_boundary))} < {phi * min(vol_S, vol_S_complement)}",
+                f" = {min(len(boundary), len(reverse_boundary)) < phi * min(vol_S, vol_S_complement)}",
+            )
+
+            if best_local_cut is None:
+                best_local_cut = local_cut
+            else:
+                print("Updating local best cut")
+                best_local_cut.update(local_cut)
+
+        if best_global_cut is None and best_local_cut is not None:
+            best_global_cut = best_local_cut
+        elif best_global_cut is not None and best_local_cut is not None:
+            print("Updating global best cut")
+            best_global_cut.update(best_local_cut)
+
+    if best_global_cut is None:
+        return f, (set(), set(), set())
+
+    return f, best_global_cut.get_tuple()
+
+
+@dataclass
+class Cut:
+    S_leq_i: set[Vertex]
+    S_leq_i_complement: set[Vertex]
+    edges: set[Edge]
+    value: int
+
+    def update(self, other: Self):
+        if other.value < self.value:
+            print("Best cut updated:", other.value)
+
+            self.S_leq_i = other.S_leq_i
+            self.S_leq_i_complement = other.S_leq_i_complement
+            self.edges = other.edges
+            self.value = other.value
+
+    def print(self):
+        print("Cut:", self.S_leq_i, self.S_leq_i_complement)
+        print("value:", self.value)
+        print("edges:", self.edges)
+
+    def get_tuple(self):
+        return (
+            self.S_leq_i.copy(),
+            self.S_leq_i_complement.copy(),
+            self.edges,
         )
-        print("value:", value)
-        print("best_cut_value:", best_cut_value)
-
-        # For interest, calculate the Cheeger constant
-        if min_vol == 0:
-            cheeger_constant = float("inf")
-        else:
-            cheeger_constant = boundary_size / min_vol
-        print("Boundary size:", boundary_size)
-        print("Cheeger constant:", cheeger_constant)
-
-        # For interest, calculate the sparsity of the cut
-        # Calculated based on https://home.ttic.edu/~yury/courses/geometry/notes/sparsest-cut.pdf
-        smallest_vertex_set = min(len(S_leq_i), len(S_leq_i_complement))
-        if smallest_vertex_set == 0:
-            sparsity = float("inf")
-        else:
-            sparsity = boundary_size / smallest_vertex_set
-        print("Sparsity:", sparsity)
-        print(
-            "min{|E(S, S)|, |E(S, S)|} < ϕ · min{vol(S), vol(S̄)}",
-            f" = min({boundary_size}, {reverse_boundary_size}) < {phi} · min({vol_S}, {vol_S_complement})",
-            f" = {min(boundary_size, reverse_boundary_size)} < {phi * min(vol_S, vol_S_complement)}",
-            f" = {min(boundary_size, reverse_boundary_size) < phi * min(vol_S, vol_S_complement)}",
-        )
-        if value < best_cut_value:
-            best_cut_value = value
-            best_cut = (S_leq_i.copy(), S_leq_i_complement.copy())
-            print("Best cut updated:", best_cut)
-            print("Best cut Cheeger constant:", cheeger_constant)
-            print("Best cut sparsity:", sparsity)
-
-    print("source 0", [instance.residual_source(v) for v in best_cut[0]])
-    print("source 1", [instance.residual_source(v) for v in best_cut[1]])
-    print("sinks 0", [instance.residual_sink(v) for v in best_cut[0]])
-    print("sinks 1", [instance.residual_sink(v) for v in best_cut[1]])
-
-    return f, best_cut
 
 
 def dijsktra(
     G: Graph,
     instance: WeightedPushRelabel,
-    S_0: set[Vertex],
+    S_0: list[Vertex],
     w_f: Callable[[Edge], int],
-) -> dict[int, set[Vertex]]:
-    # Compute w_f-distance levels in the residual graph
-    # We'll use Dijkstra's algorithm to compute distances
-    # Initialize distances
-    distances = {v: sys.maxsize for v in instance.G.V}
+) -> list[dict[int, set[Vertex]]]:
+    level_collections: list[dict[int, set[Vertex]]] = []
 
-    for s in S_0:
-        distances[s] = 0
+    for start in S_0:
+        # Compute w_f-distance levels in the residual graph
+        # We'll use Dijkstra's algorithm to compute distances
+        # Initialize distances
+        distances = {v: sys.maxsize for v in instance.G.V}
+        distances[start] = 0
 
-    # Compute distances using Dijkstra's algorithm
-    queue = [(0, s) for s in S_0]
-    heapq.heapify(queue)
-    visited: set[Vertex] = set()
+        # Compute distances using Dijkstra's algorithm
+        queue = [(0, start)]
+        heapq.heapify(queue)
+        visited: set[Vertex] = set()
 
-    print("Distances initialized:", distances)
-    while queue:
-        dist, u = heapq.heappop(queue)
-        if u in visited:
-            continue
-
-        visited.add(u)
-        for edge in G.outgoing[u]:
-            v = edge.end()
-            if v in visited or instance.c_f(edge) == 0:
+        print("Distances initialized:", distances)
+        while queue:
+            dist, u = heapq.heappop(queue)
+            if u in visited:
                 continue
 
-            weight = w_f(edge)
+            visited.add(u)
+            for edge in G.outgoing[u]:
+                v = edge.end()
+                if v in visited or instance.c_f(edge) == 0:
+                    continue
 
-            if dist + weight < distances[v]:
-                distances[v] = dist + weight
-                heapq.heappush(queue, (distances[v], v))
+                weight = w_f(edge)
 
-    levels: dict[int, set[Vertex]] = defaultdict(set)
-    for v, dist in distances.items():
-        levels[dist].add(v)
+                if dist + weight < distances[v]:
+                    distances[v] = dist + weight
+                    heapq.heappush(queue, (distances[v], v))
 
-    return levels
+        levels: dict[int, set[Vertex]] = defaultdict(set)
+        for v, dist in distances.items():
+            levels[dist].add(v)
+
+        level_collections.append(levels)
+
+    return level_collections

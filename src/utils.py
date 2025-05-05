@@ -58,6 +58,12 @@ class Graph:
         """
         Returns the volume of the vertex v.
         """
+        return sum(1 for edge in self.incident[v] if edge.forward)
+
+    def volume_c(self, v: int) -> int:
+        """
+        Returns the volume of the vertex v.
+        """
         return sum(edge.c for edge in self.incident[v] if edge.forward)
 
 

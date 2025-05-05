@@ -141,6 +141,87 @@ ADRIANS_ZIP_BOMB = """
 5-(1)>4
 """
 
+ADRIAN_EXPANDER = """
+28 54 0 27
+0-(63)>1
+0-(45)>4
+1-(95)>6
+2-(62)>1
+2-(73)>3
+2-(16)>7
+3-(27)>6
+4-(34)>5
+4-(37)>7
+5-(78)>6
+6-(56)>0
+6-(64)>7
+7-(26)>0
+7-(83)>1
+7-(40)>2
+7-(42)>3
+7-(41)>6
+10-(12)>11
+10-(92)>14
+11-(55)>16
+12-(36)>11
+12-(37)>13
+12-(33)>17
+13-(3)>16
+14-(100)>15
+14-(25)>17
+15-(15)>16
+16-(81)>10
+16-(97)>17
+17-(20)>10
+17-(1)>11
+17-(40)>12
+17-(76)>13
+17-(86)>16
+20-(29)>21
+20-(29)>24
+21-(47)>26
+22-(36)>21
+22-(28)>23
+22-(68)>27
+23-(21)>26
+24-(82)>25
+24-(31)>27
+25-(43)>26
+26-(79)>20
+26-(32)>27
+27-(58)>20
+27-(2)>21
+27-(11)>22
+27-(94)>23
+27-(96)>26
+5-(57)>14
+15-(3)>25
+26-(53)>0
+"""
+
+SHOULD_CUT_MIDDLE = """
+12 17 0 11
+0-(6)>1
+0-(67)>2
+0-(16)>3
+0-(50)>4
+1-(4)>5
+2-(10)>5
+3-(92)>5
+4-(50)>5
+5-(51)>6
+5-(51)>6
+5-(51)>6
+6-(92)>7
+6-(57)>8
+6-(91)>9
+6-(28)>10
+7-(78)>11
+8-(58)>11
+9-(65)>11
+10-(27)>11
+"""
+
 INPUT_EXPECTED = [
     pytest.param(CP_ALGORITHMS_GRAPH, 10, id="CP_ALGORITHMS_GRAPH"),
     pytest.param(GEEKS_FOR_GEEKS_GRAPH, 23, id="GEEKS_FOR_GEEKS_GRAPH"),
@@ -154,10 +235,12 @@ INPUT_EXPECTED = [
     pytest.param(REVERSE_GRAPH, 20, id="REVERSE_GRAPH"),
     pytest.param(POSSIBLY_INTERESTING_GRAPH, 2, id="POSSIBLY_INTERESTING_GRAPH"),
     pytest.param(ADRIANS_ZIP_BOMB, 1, id="ADRIANS_ZIP_BOMB"),
+    pytest.param(ADRIAN_EXPANDER, 25, id="ADRIAN_EXPANDER"),
 ]
 
 INPUT_EXPECTED_DAG = [
     pytest.param(CP_ALGORITHMS_GRAPH, 10, id="CP_ALGORITHMS_GRAPH"),
     pytest.param(SIMOLEAN_GRAPH, 10, id="SIMOLEAN_GRAPH"),
     pytest.param(REVERSE_GRAPH, 20, id="REVERSE_GRAPH"),
+    pytest.param(SHOULD_CUT_MIDDLE, 51, id="SHOULD_CUT_MIDDLE"),
 ]

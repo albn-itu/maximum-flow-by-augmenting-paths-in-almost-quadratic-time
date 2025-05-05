@@ -1,11 +1,12 @@
 from itertools import chain
-from src.sparse_cut import sparse_cut
+from src.expander_decomposition import expander_decomposition
+from src.utils import Edge
 from tests.known_inputs import INPUT_EXPECTED, INPUT_EXPECTED_DAG
 from tests.utils import parse_input
 import pytest
 
 
-def run_sparse_cut(input: str, expected: int, kappa: int):
+def run_expander_decomposition(input: str, expected: int, kappa: int) -> set[Edge]:
     G, sources, sinks = parse_input(input, expected)
     c = G.c
     _sources = {v: sources[i] for i, v in enumerate(G.V)}
@@ -13,30 +14,30 @@ def run_sparse_cut(input: str, expected: int, kappa: int):
 
     edges = set(chain.from_iterable(G.incident.values()))
 
-    return sparse_cut(I=(G, c, _sources, _sinks), kappa=kappa, F=edges, H={}, phi=0.2)
+    return expander_decomposition(
+        I=(G, c, _sources, _sinks), kappa=kappa, F=edges, H={}, phi=0.2
+    )
 
 
 @pytest.mark.paper
-@pytest.mark.sparse_cut
+@pytest.mark.expander_decomposition
 @pytest.mark.parametrize("input,expected", INPUT_EXPECTED)
-def test_sparse_cut_known_inputs(input: str, expected: int):
+def test_expander_decomposition_known_inputs(input: str, expected: int):
     # benchmark.register_or_update("bench_config.top_sort", False, lambda x: x)
 
-    flow, cut = run_sparse_cut(input, expected, kappa=1)
-    print("flow", flow)
+    cut = run_expander_decomposition(input, expected, kappa=10)
     print("cut", cut)
 
-    assert flow is not None
+    assert len(cut) != 0
 
 
 @pytest.mark.paper
-@pytest.mark.sparse_cut
+@pytest.mark.expander_decomposition
 @pytest.mark.parametrize("input,expected", INPUT_EXPECTED_DAG)
-def test_sparse_cut_known_inputs_dag(input: str, expected: int):
+def test_expander_decomposition_known_inputs_dag(input: str, expected: int):
     # benchmark.register_or_update("bench_config.top_sort", False, lambda x: x)
 
-    flow, cut = run_sparse_cut(input, expected, kappa=1)
-    print("flow", flow)
+    cut = run_expander_decomposition(input, expected, kappa=1)
     print("cut", cut)
 
-    assert flow is not None
+    assert len(cut) != 0
