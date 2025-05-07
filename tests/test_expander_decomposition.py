@@ -12,7 +12,7 @@ def run_expander_decomposition(input: str, expected: int, kappa: int) -> set[Edg
     _sources = {v: sources[i] for i, v in enumerate(G.V)}
     _sinks = {v: sinks[i] for i, v in enumerate(G.V)}
 
-    edges = set(chain.from_iterable(G.incident.values()))
+    edges = G.all_edges()
 
     return expander_decomposition(
         I=(G, c, _sources, _sinks), kappa=kappa, F=edges, H={}, phi=0.2

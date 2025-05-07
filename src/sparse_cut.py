@@ -44,16 +44,6 @@ def sparse_cut(
     # eta = math.log(n)  # Height of the hierarchy
     D_H = H.get(0, set())  # DAG edges from hierarchy
 
-    print("I", I)
-    print("kappa", kappa)
-    print("F", F)
-    print("H", H)
-    print("c_6_5", c_6_5)
-    print("phi", phi)
-    print("w_H", w_H)
-    print("D_H", D_H)
-    print("n", n)
-
     # Calculate h as defined in the algorithm
     # h = math.ceil((4 * (eta**4) * c_6_5 * (math.log(n) ** 7) * kappa) / (phi**2) * n)
     h = math.ceil(1 / phi)

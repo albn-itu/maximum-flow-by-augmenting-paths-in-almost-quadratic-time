@@ -61,11 +61,11 @@ def expander_decomposition(
             # Small volume makes F trivially ϕ-expanding
             continue
 
-        # if not (1 / phi <= len(G.V)):
-        #     print(f"Trivially expanding since not {1 / phi} <= {len(G.V)}", G.V)
-        #     U.append(set(G.V))
-        #     # Small volume makes F trivially ϕ-expanding
-        #     continue
+        if not (1 / phi <= len(G.V)):
+            print(f"Trivially expanding since not {1 / phi} <= {len(G.V)}", G.V)
+            U.append(set(G.V))
+            # Small volume makes F trivially ϕ-expanding
+            continue
 
         print(
             "Processing component with vertices:",
@@ -76,10 +76,7 @@ def expander_decomposition(
         )
 
         # Subgraph induced by the component
-        print("F", F)
-        print("G.E", G.E)
-        F_component = F.intersection(G.E)
-        print("F_component", F_component)
+        F_component = F.intersection(G.all_edges())
 
         # Try to find a sparse cut or certify that F is expanding
         _, cut = sparse_cut(
@@ -145,6 +142,9 @@ def subgraph(
 
 
 def select_sources_and_sinks(G: Graph) -> tuple[dict[Vertex, int], dict[Vertex, int]]:
+    if len(G.V) <= 1:
+        return {}, {}
+
     out_degrees: dict[int, set[Vertex]] = defaultdict(set)
     in_degrees: dict[int, set[Vertex]] = defaultdict(set)
 
@@ -153,14 +153,34 @@ def select_sources_and_sinks(G: Graph) -> tuple[dict[Vertex, int], dict[Vertex, 
         in_degrees[len(list(filter(lambda t: t.forward, G.incoming[u])))].add(u)
 
     largest_out_degree = max(out_degrees.keys())
-    largest_in_degree = max(in_degrees.keys())
 
     sources = {
         v: sum(G.c[e.id] for e in G.outgoing[v])
         for v in out_degrees[largest_out_degree]
     }
-    sinks = {
-        v: sum(G.c[e.id] for e in G.incoming[v]) for v in in_degrees[largest_in_degree]
-    }
+
+    sinks = {}
+    for degree in sorted(list(in_degrees.keys()), reverse=True):
+        sinks = {
+            v: sum(G.c[e.id] for e in G.incoming[v])
+            for v in in_degrees[degree]
+            if v not in sources
+        }
+        print(degree, sinks, in_degrees, in_degrees[degree])
+
+        if len(sinks) > 0:
+            break
+
+    if len(sinks) == 0 and len(sources) > 1 and len(in_degrees) == 1:
+        largest_in_degree = max(in_degrees.keys())
+        sinks = {
+            v: sum(G.c[e.id] for e in G.incoming[v])
+            for v in in_degrees[largest_in_degree]
+        }
+        del sources[in_degrees[largest_in_degree].pop()]
+    elif len(sinks) == 0:
+        raise ValueError(
+            "No sinks found, check the graph structure or the source selection logic."
+        )
 
     return defaultdict(int, sources), defaultdict(int, sinks)

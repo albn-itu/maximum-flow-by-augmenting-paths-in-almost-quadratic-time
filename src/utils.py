@@ -66,6 +66,12 @@ class Graph:
         """
         return sum(edge.c for edge in self.incident[v] if edge.forward)
 
+    def all_edges(self) -> set[Edge]:
+        """
+        Returns all edges in the graph.
+        """
+        return set(edge for edges in self.incident.values() for edge in edges)
+
 
 def make_outgoing_incoming(
     G: Graph, c: list[int]
