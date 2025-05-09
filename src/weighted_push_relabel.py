@@ -54,6 +54,7 @@ class WeightedPushRelabel:
         )
         # Shorthands
         w = {e: self.w(e.forward_edge()) for e in all_edges}
+        print(f"w: {w}")
         h = self.h
         f, l, c_f = self.f, self.l, self.c_f
 

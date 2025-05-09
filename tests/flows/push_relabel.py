@@ -1,6 +1,6 @@
 from collections import defaultdict
 from src import benchmark
-from tests.flows.utils import TestEdge
+from src.utils import Graph
 
 
 INF = 1000000000
@@ -16,8 +16,10 @@ class PushRelabel:
 
     edge_updates: int
 
-    def __init__(self, edges: list[TestEdge], capacities: list[int]):
+    def __init__(self, G: Graph):
         """Initialize push-relabel algorithm with n vertices."""
+        edges, capacities = G.E, G.c
+
         self.capacities = defaultdict(lambda: defaultdict(lambda: 0))
         self.flow = defaultdict(lambda: defaultdict(lambda: 0))
 

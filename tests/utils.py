@@ -2,7 +2,10 @@ import os
 from src import benchmark
 from src.utils import Edge, Graph, topological_sort
 from typing import Callable, ParamSpec, TypeVar
-from tests.flows.utils import make_test_flow_input
+from tests.flows.utils import (
+    make_test_flow_input,
+    weight_function_from_flow,
+)
 from tests.flows import find_max_flow as find_max_flow_correct
 from functools import wraps
 
@@ -61,15 +64,16 @@ def parse_input(input: str, expected: int) -> tuple[Graph, list[int], list[int]]
 
 
 def wrap_correct(
-    g: Graph,
+    G: Graph,
+    _: list[int],
     sources: list[int],
     sinks: list[int],
     w: Callable[[Edge], int],
     h: int,
 ) -> tuple[int, dict[Edge, int] | None]:
-    edges, capacities, s, t = make_test_flow_input(g, sources, sinks, w, h)
+    edges, capacities, s, t = make_test_flow_input(G, sources, sinks, w, h)
 
-    return (find_max_flow_correct(edges, capacities, s=s, t=t), None)
+    return (find_max_flow_correct(G, s=s, t=t), None)
 
 
 FlowFn = Callable[
@@ -112,5 +116,20 @@ def run_test_with_topsort(
 
     def weight_fn(e: Edge):
         return abs(ranks[e.v] - ranks[e.u])
+
+    return run_test(input, expected, flow_fn, weight_fn, h)
+
+
+def run_test_with_flow_weight(
+    input: str,
+    expected: int,
+    flow_fn: FlowFn,
+    h: int | None = None,
+):
+    benchmark.register("bench_config.weight_from_flow", True)
+
+    g, sources, sinks = parse_input(input, expected)
+
+    weight_fn = weight_function_from_flow(g, sources, sinks)
 
     return run_test(input, expected, flow_fn, weight_fn, h)

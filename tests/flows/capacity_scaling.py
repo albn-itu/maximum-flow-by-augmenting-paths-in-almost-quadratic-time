@@ -1,17 +1,17 @@
 from collections import defaultdict
 
 from src import benchmark
-from tests.flows.utils import TestEdge
+from src.utils import Graph
 
 # all credit to Riko Jacob for this code
 
 
-def find_max_flow(
-    edges: list[TestEdge], capacities: list[int], s: int, t: int
-) -> tuple[int, list[tuple[int, int, int]]]:
+def find_max_flow(G: Graph, s: int, t: int) -> tuple[int, list[tuple[int, int, int]]]:
     graph: defaultdict[int, defaultdict[int, int]] = defaultdict(
         lambda: defaultdict(lambda: 0)
     )
+
+    edges, capacities = G.E, G.c
 
     for (u, v), capacity in zip(edges, capacities):
         graph[u][v] = capacity

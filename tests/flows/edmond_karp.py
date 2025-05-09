@@ -1,7 +1,7 @@
 # Based upon the C++ implementation from here https://cp-algorithms.com/graph/min_cost_flow.html
 from collections import defaultdict, deque
 from src import benchmark
-from tests.flows.utils import TestEdge
+from src.utils import Graph
 
 
 class MaxFlow:
@@ -9,11 +9,11 @@ class MaxFlow:
     capacities: defaultdict[int, defaultdict[int, int]]
     adj: defaultdict[int, list[int]]
 
-    def __init__(self, edges: list[TestEdge], capacities: list[int]):
+    def __init__(self, G: Graph):
         self.capacities = defaultdict(lambda: defaultdict(lambda: 0))
 
         vs: set[int] = set()
-        for (u, v), cap in zip(edges, capacities):
+        for (u, v), cap in zip(G.E, G.c):
             vs.add(u)
             vs.add(v)
 
@@ -22,7 +22,7 @@ class MaxFlow:
         self.n = max(vs) + 1
 
         self.adj = defaultdict(list)
-        for u, v in edges:
+        for u, v in G.E:
             self.adj[u].append(v)
             self.adj[v].append(u)
 
