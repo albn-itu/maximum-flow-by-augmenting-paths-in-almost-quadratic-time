@@ -281,7 +281,7 @@ def test_correct_maxflow_not_dag(input_file: str, expected: int):
     "input_file,expected", parse_maxflow_file_names(MAXFLOW_NOT_DAG_FILES)
 )
 def test_benchmark_maxflow_not_dag(input_file: str, expected: int):
-    run_test(read_file(input_file), expected, weighted_push_relabel)
+    run_test(input_file, expected, weighted_push_relabel)
     run_test(input_file, expected, wrap_correct)
 
 
