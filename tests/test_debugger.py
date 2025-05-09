@@ -17,7 +17,7 @@ def compare_answers(
 ):
     g, sources, sinks = parse_input(input, 10_000)
     h = h if h is not None else len(g.V)
-    mf, _ = wrap_correct(g, sources, sinks, lambda _: 1, h)
+    mf, _ = wrap_correct(g, g.c, sources, sinks, lambda _: 1, h)
 
     print("Correct answer:", mf)
 
@@ -29,7 +29,8 @@ def compare_answers(
     print(mf)
 
 
-@pytest.mark.paper
+@pytest.mark.weighted_push_relabel
+@pytest.mark.large_graph  # Its not really, it's just really slow
 def test_compare_random_dags_with_correct_answer():
     for i in range(1_000):
         dag = make_random_dag()
@@ -41,7 +42,7 @@ def test_compare_random_dags_with_correct_answer():
         compare_answers(dag)
 
 
-@pytest.mark.paper
+@pytest.mark.weighted_push_relabel
 def test_random_dag_with_low_h():
     dag = r"""25 37 0 24
 0-(11)>1
@@ -101,13 +102,13 @@ example_dag = r"""7 10 1 6
 5-(9)>6"""
 
 
-@pytest.mark.paper
+@pytest.mark.weighted_push_relabel
 @bench
 def test_example_dag_no_toppy():
     compare_answers(example_dag, topsort=False)
 
 
-@pytest.mark.paper
+@pytest.mark.weighted_push_relabel
 @bench
 def test_example_dag_toppy():
     compare_answers(example_dag, topsort=True)
@@ -167,12 +168,12 @@ expander_hieararchytfj = r"""23 51 0 19
 21-(26)>7"""
 
 
-@pytest.mark.paper
+@pytest.mark.weighted_push_relabel
 @bench
 def test_example_dag_expandeerererr_with_weight_fn():
     g, sources, sinks = parse_input(expander_hieararchytfj, 10_000)
     h = len(g.V) // 4
-    mf, _ = wrap_correct(g, sources, sinks, lambda _: 1, h)
+    mf, _ = wrap_correct(g, g.c, sources, sinks, lambda _: 1, h)
 
     print("h:", h)
     print("Correct answer:", mf)
@@ -185,12 +186,12 @@ def test_example_dag_expandeerererr_with_weight_fn():
     )
 
 
-@pytest.mark.paper
+@pytest.mark.weighted_push_relabel
 @bench
 def test_example_dag_expandeerererr_without_weight_fn():
     g, sources, sinks = parse_input(expander_hieararchytfj, 10_000)
     h = len(g.V) // 7
-    mf, _ = wrap_correct(g, sources, sinks, lambda _: 1, h)
+    mf, _ = wrap_correct(g, g.c, sources, sinks, lambda _: 1, h)
 
     print("h:", h)
     print("Correct answer:", mf)
@@ -272,13 +273,13 @@ dimacs = """22 72 0 22
 5-(11)>18"""
 
 
-@pytest.mark.paper
+@pytest.mark.weighted_push_relabel
 @bench
 def test_dimacs():
     compare_answers(dimacs)
 
 
-@pytest.mark.paper
+@pytest.mark.weighted_push_relabel
 @bench
 def test_dimacs_with_weight_fn():
     in_flow_solution = set(
@@ -311,13 +312,13 @@ def test_dimacs_with_weight_fn():
     compare_answers(dimacs, weight_fn=weight_fn)
 
 
-@pytest.mark.paper
+@pytest.mark.weighted_push_relabel
 @bench
 def test_geeks_for_geeks_weight_fn_no():
     compare_answers(GEEKS_FOR_GEEKS_GRAPH)
 
 
-@pytest.mark.paper
+@pytest.mark.weighted_push_relabel
 @bench
 def test_geeks_for_geeks_weight_fn_with_w():
     in_flow_solution = set(
@@ -338,7 +339,7 @@ def test_geeks_for_geeks_weight_fn_with_w():
     compare_answers(GEEKS_FOR_GEEKS_GRAPH, weight_fn=weight_fn)
 
 
-@pytest.mark.paper
+@pytest.mark.weighted_push_relabel
 @bench
 def test_weight_function_weight_impact_example():
     graph = """3 2 1 2
@@ -351,7 +352,7 @@ def test_weight_function_weight_impact_example():
     compare_answers(graph, weight_fn=weight_fn)
 
 
-@pytest.mark.paper
+@pytest.mark.weighted_push_relabel
 @bench
 def test_low_h_in_ranked_graph():
     graph = """14 48 0 13
@@ -407,7 +408,7 @@ def test_low_h_in_ranked_graph():
     compare_answers(graph, h=1)
 
 
-@pytest.mark.paper
+@pytest.mark.weighted_push_relabel
 @bench
 def test_uses_reverse_edge():
     graph = """6 7 0 5

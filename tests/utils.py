@@ -1,4 +1,6 @@
 import os
+
+import pytest
 from src import benchmark
 from src.utils import Edge, Graph, topological_sort
 from typing import Callable, ParamSpec, TypeVar
@@ -133,3 +135,9 @@ def run_test_with_flow_weight(
     weight_fn = weight_function_from_flow(g, sources, sinks)
 
     return run_test(input, expected, flow_fn, weight_fn, h)
+
+
+def input_expected_list_to_params(
+    inputs: list[tuple[str, int, str]],
+):
+    return [pytest.param(input, expected, id=id) for input, expected, id in inputs]

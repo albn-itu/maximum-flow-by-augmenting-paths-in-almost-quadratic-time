@@ -2,7 +2,7 @@ from itertools import chain
 from src.expander_decomposition import expander_decomposition
 from src.utils import Edge
 from tests.known_inputs import INPUT_EXPECTED, INPUT_EXPECTED_DAG
-from tests.utils import parse_input
+from tests.utils import input_expected_list_to_params, parse_input
 import pytest
 
 
@@ -19,9 +19,11 @@ def run_expander_decomposition(input: str, expected: int, kappa: int) -> set[Edg
     )
 
 
-@pytest.mark.paper
+@pytest.mark.weighted_push_relabel
 @pytest.mark.expander_decomposition
-@pytest.mark.parametrize("input,expected", INPUT_EXPECTED)
+@pytest.mark.parametrize(
+    "input,expected", input_expected_list_to_params(INPUT_EXPECTED)
+)
 def test_expander_decomposition_known_inputs(input: str, expected: int):
     # benchmark.register_or_update("bench_config.top_sort", False, lambda x: x)
 
@@ -31,9 +33,11 @@ def test_expander_decomposition_known_inputs(input: str, expected: int):
     assert len(cut) != 0
 
 
-@pytest.mark.paper
+@pytest.mark.weighted_push_relabel
 @pytest.mark.expander_decomposition
-@pytest.mark.parametrize("input,expected", INPUT_EXPECTED_DAG)
+@pytest.mark.parametrize(
+    "input,expected", input_expected_list_to_params(INPUT_EXPECTED)
+)
 def test_expander_decomposition_known_inputs_dag(input: str, expected: int):
     # benchmark.register_or_update("bench_config.top_sort", False, lambda x: x)
 

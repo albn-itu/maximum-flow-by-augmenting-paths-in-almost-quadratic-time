@@ -54,11 +54,13 @@ class ConstructedInstance:
         for _ in range(expanders_per_rank * (num_ranks - 1)):
             G = nx.DiGraph()
             G_init = nx.random_regular_expander_graph(
-                nodes_per_expander, expander_degree, seed=get_seed()).to_directed()
+                nodes_per_expander, expander_degree, seed=get_seed()
+            ).to_directed()
 
             for u, v in G_init.edges:
-                G.add_edge(u + num_vertices, v + num_vertices,
-                           weight=random.randint(10, 20))
+                G.add_edge(
+                    u + num_vertices, v + num_vertices, weight=random.randint(10, 20)
+                )
 
             expanders.append(G)
             num_vertices += G.number_of_nodes()
@@ -117,16 +119,24 @@ class ConstructedInstance:
 
         # assert len(top_order) == num_vertices
 
-        return ConstructedInstance(expanders=expanders, num_vertices=num_vertices, rank_vertices=rank_vertices, s=s, t=t, dag_edges=dag_edges, top_order=top_order)
+        return ConstructedInstance(
+            expanders=expanders,
+            num_vertices=num_vertices,
+            rank_vertices=rank_vertices,
+            s=s,
+            t=t,
+            dag_edges=dag_edges,
+            top_order=top_order,
+        )
 
     def export_graphviz(self):
         indent = 0
 
         def p(*args):
-            print(indent * 2 * ' ', end='')
+            print(indent * 2 * " ", end="")
             print(*args)
 
-        p('digraph G {')
+        p("digraph G {")
         indent += 1
 
         p(f'{self.s} [label="{self.s} τ={self.top_order[self.s]} (source)"];')
@@ -136,7 +146,7 @@ class ConstructedInstance:
         p(f'{self.t} [label="{self.t} τ={self.top_order[self.t]} (sink)"];')
 
         for i, G in enumerate(self.expanders):
-            p('subgraph', f'cluster_expander_{i}', '{')
+            p("subgraph", f"cluster_expander_{i}", "{")
             indent += 1
 
             p('node [style="filled", fillcolor="lightgreen"];')
@@ -149,13 +159,13 @@ class ConstructedInstance:
                 p(f'{u} -> {v} [label="{c}"];')
 
             indent -= 1
-            p('}')
+            p("}")
 
         for u, v, c in self.dag_edges:
             p(f'{u} -> {v} [label="{c}"];')
 
         indent -= 1
-        p('}')
+        p("}")
 
     def export_weighted_push_relabel_input(self):
         h = self.num_vertices
@@ -171,9 +181,10 @@ class ConstructedInstance:
                 capacities.append(c)
 
         vertices: list[int] = sorted(
-            set(u for u, _ in edges) | set(v for _, v in edges))
+            set(u for u, _ in edges) | set(v for _, v in edges)
+        )
 
-        G = Graph(E=edges, V=vertices)
+        G = Graph(E=edges, V=vertices, c=capacities)
 
         def w(e: Edge):
             return abs(self.top_order[e.u] - self.top_order[e.v])
@@ -183,37 +194,36 @@ class ConstructedInstance:
     def export_russian_graph(self):
         G, s, t, h, w, capacities = self.export_weighted_push_relabel_input()
 
-        output = [f'{len(G.V)} {len(G.E)} {s} {t}']
+        output = [f"{len(G.V)} {len(G.E)} {s} {t}"]
         for i, e in enumerate(G.E):
-            output.append(f'{e[0]}-({capacities[i]})>{e[1]}')
+            output.append(f"{e[0]}-({capacities[i]})>{e[1]}")
 
-        return '\n'.join(output)
+        return "\n".join(output)
 
     def export_custom(self):
-        output = {
-            "nodes": [],
-            "links": []
-        }
+        output = {"nodes": [], "links": []}
 
-        output["nodes"].append({ "id": self.s, "source": True })
-        output["nodes"].append({ "id": self.t, "sink": True })
+        output["nodes"].append({"id": self.s, "source": True})
+        output["nodes"].append({"id": self.t, "sink": True})
 
         for r in self.rank_vertices:
             for v in r:
-                output["nodes"].append({ "id": v })
+                output["nodes"].append({"id": v})
 
         for i, G in enumerate(self.expanders):
             for u in G.nodes:
-                output["nodes"].append({
-                    "id": u,
-                    "group": i+1,
-                })
+                output["nodes"].append(
+                    {
+                        "id": u,
+                        "group": i + 1,
+                    }
+                )
 
             for u, v, c in G.edges(data="weight"):
-                output["links"].append({ "source": u, "target": v, "value": c })
+                output["links"].append({"source": u, "target": v, "value": c})
 
         for u, v, c in self.dag_edges:
-            output["links"].append({ "source": u, "target": v, "value": c })
+            output["links"].append({"source": u, "target": v, "value": c})
 
         return output
 

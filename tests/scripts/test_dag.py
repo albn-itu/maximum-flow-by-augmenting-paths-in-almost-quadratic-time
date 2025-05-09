@@ -24,7 +24,7 @@ def get_graph(input_file: str) -> list[tuple[int, int]]:
     return parse_input(content)
 
 
-def test_if_dag(input_file: str) -> bool:
+def check_if_dag(input_file: str) -> bool:
     edges = get_graph(input_file)
     g = MultiDiGraph(edges)
 
@@ -43,7 +43,7 @@ if __name__ == "__main__":
             continue
         file = os.path.join(base_path, file)
 
-        if test_if_dag(file):
+        if check_if_dag(file):
             is_dag.append(file)
         else:
             not_dag.append(file)

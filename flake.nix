@@ -86,10 +86,8 @@
 
     in
     {
-      # Package a virtual environment as our main application.
-      #
-      # Enable no optional dependencies for production build.
-      packages.${system}.default = pythonSet.mkVirtualEnv "hello-world-env" workspace.deps.default;
+      packages.${system}.default = pythonSet.mkVirtualEnv "hello-world-env" workspace.deps.all;
+
 
       # Make hello runnable with `nix run`
       apps.${system} = {
@@ -181,6 +179,12 @@
 
               # Get repository root using git. This is expanded at runtime by the editable `.pth` machinery.
               export REPO_ROOT=$(git rev-parse --show-toplevel)
+
+              # Write pyright_config to pyrightconfig.json 
+              # This is a workaround for pyright not being able to find the venv.
+              echo "{
+                \"venvPath\": \"${virtualenv}\",
+              }" > pyrightconfig.json
             '';
           };
       };
