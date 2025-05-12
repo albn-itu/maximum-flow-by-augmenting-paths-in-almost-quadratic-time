@@ -48,7 +48,7 @@ def weight_function_from_flow(
         if (u, v) in dag_flow_edges:
             return 1
 
-        return len(G.V) * 100
+        return len(G.V)
 
     return weight_function
 
