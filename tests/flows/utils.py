@@ -1,7 +1,12 @@
 from collections import defaultdict
 from typing import Callable
 from src import benchmark
-from src.utils import Edge, Graph, topological_sort
+from src.utils import (
+    Edge,
+    Graph,
+    topological_sort,
+    topological_sort_with_backwards_edges,
+)
 from src.classic_push_relabel import PushRelabel
 
 
@@ -61,10 +66,9 @@ def topological_sort_induced_flow_dag(
     """
 
     vertices = list(set(flow.keys()).union(*flow.values()))
-    edges_to_keep: list[tuple[int, int]] = [
+    edges: list[tuple[int, int]] = [
         (u, v) for u in vertices for v in flow[u].keys() if flow[u][v] > 0
     ]
-    capacities = [1] * len(edges_to_keep)
 
-    G = Graph(vertices, edges_to_keep, capacities)
-    return topological_sort(G)
+    G = Graph(vertices, edges, [])
+    return topological_sort_with_backwards_edges(G)[0]

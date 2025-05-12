@@ -3,6 +3,8 @@ from dataclasses import dataclass, field
 import random
 from typing import override
 
+from networkx import graph
+
 type Vertex = int
 
 
@@ -95,20 +97,12 @@ def make_outgoing_incoming(
 
 
 def topological_sort(G: Graph) -> list[Vertex]:
-    order, _ = topological_sort_with_backwards_edges(G)
-    return order
-
-
-def topological_sort_with_backwards_edges(
-    G: Graph,
-) -> tuple[list[Vertex], set[tuple[int, int]]]:
     adj: dict[Vertex, set[Vertex]] = defaultdict(set)
     for u, v in G.E:
         adj[u].add(v)
 
     visited: set[Vertex] = set()
     sorted_vertices: list[Vertex] = []
-    backwards_edges: set[tuple[int, int]] = set()
 
     def dfs(v: Vertex):
         visited.add(v)
@@ -116,8 +110,6 @@ def topological_sort_with_backwards_edges(
         for w in adj[v]:
             if w not in visited:
                 dfs(w)
-            else:
-                backwards_edges.add((v, w))
 
         sorted_vertices.append(v)
 
@@ -125,7 +117,90 @@ def topological_sort_with_backwards_edges(
         if v not in visited:
             dfs(v)
 
-    return (sorted_vertices[::-1], backwards_edges)
+    return sorted_vertices[::-1]
+
+
+def topological_sort_with_backwards_edges(
+    G: Graph,
+) -> tuple[list[Vertex], set[tuple[int, int]]]:
+    no_cycle_g, backwards_edges = remove_cycles(G)
+    order = topological_sort(no_cycle_g)
+
+    return (order, backwards_edges)
+
+
+def remove_cycles(
+    G: Graph,
+) -> tuple[Graph, set[tuple[int, int]]]:
+    """
+    Create a new graph without cycles
+    """
+    adj: dict[Vertex, set[Vertex]] = defaultdict(set)
+    for u, v in G.E:
+        adj[u].add(v)
+
+    edges_to_remove: set[tuple[int, int]] = set()
+    visited: set[int] = set()
+    in_progress: set[int] = set()
+
+    def dfs(vertex: int, path: list[int] | None = None) -> bool:
+        """
+        Depth-first search to detect cycles.
+
+        Args:
+            vertex: Current vertex being explored
+            path: Path taken to reach the current vertex
+
+        Returns:
+            True if a cycle was detected and removed, False otherwise
+        """
+        if path is None:
+            path = []
+
+        # Already completely explored this vertex
+        if vertex in visited:
+            return False
+
+        # Cycle detected
+        if vertex in in_progress:
+            # Remove the last edge in the cycle
+            u = path[-1]
+            v = vertex
+
+            if (u, v) not in edges_to_remove:
+                edges_to_remove.add((u, v))
+                print(f"Removed edge: {u} -> {v}")
+
+            return True
+
+        in_progress.add(vertex)
+        path.append(vertex)
+
+        # Check all neighbors
+        for neighbor in adj[vertex]:
+            if dfs(neighbor, path):
+                return True
+
+        # Vertex exploration complete
+        in_progress.remove(vertex)
+        visited.add(vertex)
+        _ = path.pop()
+
+        return False
+
+    # Process each vertex that hasn't been visited
+    for vertex in G.V:
+        if vertex not in visited and vertex not in in_progress:
+            dfs(vertex)
+
+    return (
+        Graph(
+            V=G.V,
+            E=[e for e in G.E if e not in edges_to_remove],
+            c=[c for e, c in zip(G.E, G.c) if e not in edges_to_remove],
+        ),
+        edges_to_remove,
+    )
 
 
 def next_multiple_of(n: int, multiple_of: int) -> int:
