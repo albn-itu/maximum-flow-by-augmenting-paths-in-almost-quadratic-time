@@ -40,7 +40,6 @@ def weight_function_from_flow(
     flow = pr_instance.flow
 
     ordering = topological_sort_induced_flow_dag(flow)
-    print("Flow ordering:", ordering)
 
     weights = {v: i for i, v in enumerate(ordering)}
     for v in G.V:
