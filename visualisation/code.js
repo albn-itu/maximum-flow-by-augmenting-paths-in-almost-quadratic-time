@@ -19,14 +19,12 @@ let graph;
 const getFileName = () => {
   const urlParams = new URLSearchParams(window.location.search);
   const file = urlParams.get("graph");
-  return file || "graph.json";
+  return file || "output.json";
 };
 
 const fileName = getFileName();
 
-d3.json(fileName, (error, _graph) => {
-  if (error) throw error;
-
+const parse_graph = (_graph) => {
   graph = _graph;
 
   graph.links.forEach((d) => {
@@ -49,6 +47,20 @@ d3.json(fileName, (error, _graph) => {
 
   initializeDisplay();
   initializeSimulation();
+}
+
+d3.json(fileName, (error, _graph) => {
+  let firstError = error;
+  if (error) {
+    d3.json(`graphs/${fileName}`, (error, _graph) => {
+      if (error) {
+        throw firstError;
+      }
+      parse_graph(_graph);
+    });
+  } else {
+    parse_graph(_graph);
+  }
 });
 
 const SINK_COLOR = "#f3722c";

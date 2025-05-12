@@ -1,3 +1,5 @@
+visualisation/graphs/*
+!visualisation/graphs/.gitkeep
 frames/*
 prof/*
 
