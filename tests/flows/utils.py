@@ -2,7 +2,7 @@ from collections import defaultdict
 from typing import Callable
 from src import benchmark
 from src.utils import Edge, Graph
-from tests.flows.push_relabel import PushRelabel
+from src.classic_push_relabel import PushRelabel
 
 
 def get_source_and_sink(sources: list[int], sinks: list[int]) -> tuple[int, int]:

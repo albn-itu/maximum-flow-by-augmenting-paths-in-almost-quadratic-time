@@ -16,8 +16,28 @@ def read_file(file: str) -> str:
         return f.read()
 
 
-def pytest_generate_tests(metafunc: pytest.Metafunc):
-    class_instance: Base = typing.cast(Base, metafunc.cls)
+class Base:
+    file_based: bool = False
+    params: list[tuple[str, int, str]] = []
+
+    @pytest.mark.weighted_push_relabel
+    @bench
+    def test_weighted_push_relabel(self, input: str, expected: int):
+        run_test(input, expected, weighted_push_relabel)
+
+    @pytest.mark.weighted_push_relabel
+    @pytest.mark.with_flow_weight
+    @bench
+    def test_weighted_push_relabel_with_flow_weight(self, input: str, expected: int):
+        run_test_with_flow_weight(input, expected, weighted_push_relabel)
+
+    @pytest.mark.correct_flow
+    @bench
+    def test_correct_flow_algorithms(self, input: str, expected: int):
+        run_test(input, expected, wrap_correct)
+
+
+def create_test_params(class_instance: Base) -> tuple[list[tuple[str, int]], list[str]]:
     params = class_instance.params
     if not params:
         raise ValueError(
@@ -39,27 +59,14 @@ def pytest_generate_tests(metafunc: pytest.Metafunc):
         in_ex.append((input, expected))
         ids.append(id)
 
+    return in_ex, ids
+
+
+def pytest_generate_tests(metafunc: pytest.Metafunc):
+    class_instance: Base = typing.cast(Base, metafunc.cls)
+    in_ex, ids = create_test_params(class_instance)
+
     metafunc.parametrize("input, expected", in_ex, ids=ids)
-
-
-class Base:
-    file_based: bool = False
-    params: list[tuple[str, int, str]] = []
-
-    @pytest.mark.weighted_push_relabel
-    def test_weighted_push_relabel(self, input: str, expected: int):
-        run_test(input, expected, weighted_push_relabel)
-
-    @pytest.mark.weighted_push_relabel
-    @pytest.mark.with_flow_weight
-    @bench
-    def test_weighted_push_relabel_with_flow_weight(self, input: str, expected: int):
-        run_test_with_flow_weight(input, expected, weighted_push_relabel)
-
-    @pytest.mark.correct_flow
-    @bench
-    def test_correct_flow_algorithms(self, input: str, expected: int):
-        run_test(input, expected, wrap_correct)
 
 
 class TopSortable(Base):

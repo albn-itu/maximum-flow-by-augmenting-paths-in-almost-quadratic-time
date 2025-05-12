@@ -1,7 +1,7 @@
 from src.utils import Graph
 from .capacity_scaling import find_max_flow as cap_find_max_flow
 from .edmond_karp import MaxFlow
-from .push_relabel import PushRelabel
+from src.classic_push_relabel import PushRelabel
 import time
 from src import benchmark
 

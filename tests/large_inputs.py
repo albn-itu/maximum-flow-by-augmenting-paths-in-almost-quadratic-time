@@ -1,6 +1,5 @@
 import os
 
-
 DAG_INPUT_EXPECTED = [
     ("tests/data/dag_edges_25.txt", 65, "dag_edges_25"),
     ("tests/data/dag_edges_50.txt", 169, "dag_edges_50"),

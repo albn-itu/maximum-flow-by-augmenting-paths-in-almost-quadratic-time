@@ -1,6 +1,3 @@
-import pytest
-
-
 INPUT_184 = """
 16 34 0 15
 0-(66)>1

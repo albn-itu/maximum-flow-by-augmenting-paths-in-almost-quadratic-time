@@ -191,15 +191,6 @@ class ConstructedInstance:
 
         return G, self.s, self.t, h, w, capacities
 
-    def export_russian_graph(self):
-        G, s, t, h, w, capacities = self.export_weighted_push_relabel_input()
-
-        output = [f"{len(G.V)} {len(G.E)} {s} {t}"]
-        for i, e in enumerate(G.E):
-            output.append(f"{e[0]}-({capacities[i]})>{e[1]}")
-
-        return "\n".join(output)
-
     def export_custom(self):
         output = {"nodes": [], "links": []}
 

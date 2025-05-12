@@ -2,7 +2,7 @@ import os
 
 import pytest
 from src import benchmark
-from src.utils import Edge, Graph, topological_sort
+from src.utils import Edge, Graph, parse_input, topological_sort
 from typing import Callable, ParamSpec, TypeVar
 from tests.flows.utils import (
     make_test_flow_input,
@@ -37,32 +37,6 @@ def bench(
         return res
 
     return wrapper
-
-
-def parse_input(input: str, expected: int) -> tuple[Graph, list[int], list[int]]:
-    lines = input.strip().split("\n")
-    _, _, s, t = map(int, lines[0].split())
-
-    edges: list[tuple[int, int]] = []
-    capacities: list[int] = []
-
-    for line in lines[1:]:
-        u, rest = line.split("-(")
-        cap, v = rest.split(")>")
-
-        edges.append((int(u), int(v)))
-        capacities.append(int(cap))
-
-    n = max(max(e[0] for e in edges), max(e[1] for e in edges)) + 1
-    vertices = list(range(n))
-
-    sources = [0] * n
-    sinks = [0] * n
-
-    sources[s] = expected
-    sinks[t] = expected
-
-    return (Graph(vertices, edges, capacities), sources, sinks)
 
 
 def wrap_correct(

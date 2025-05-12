@@ -1,8 +1,7 @@
-from itertools import chain
 from src.expander_decomposition import expander_decomposition
-from src.utils import Edge
-from tests.known_inputs import INPUT_EXPECTED, INPUT_EXPECTED_DAG
-from tests.utils import input_expected_list_to_params, parse_input
+from src.utils import Edge, parse_input
+from tests.known_inputs import INPUT_EXPECTED
+from tests.utils import input_expected_list_to_params
 import pytest
 
 

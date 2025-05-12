@@ -1,7 +1,8 @@
 from itertools import chain
 from src.sparse_cut import sparse_cut
-from tests.known_inputs import INPUT_EXPECTED, INPUT_EXPECTED_DAG
-from tests.utils import input_expected_list_to_params, parse_input
+from src.utils import parse_input
+from tests.known_inputs import INPUT_EXPECTED
+from tests.utils import input_expected_list_to_params
 import pytest
 
 

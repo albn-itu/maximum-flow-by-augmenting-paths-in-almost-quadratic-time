@@ -1,3 +1,6 @@
+from utils import Graph, generate_random_capacities
+
+
 GRAPH: str = """
 0>1
 0>2
@@ -18,20 +21,26 @@ GRAPH: str = """
 10>11
 """
 
-import random
-
-
 lines = GRAPH.strip().split("\n")
 
 nodes = 0
-edges: list[tuple[int, int, int]] = []
+edges: list[tuple[int, int]] = []
 capacities: list[int] = []
 
 for line in lines:
     u, v = line.split(">")
     nodes = max(nodes, int(u), int(v))
-    edges.append((int(u), int(v), random.randint(1, 100)))
+    edges.append((int(u), int(v)))
+
+g = generate_random_capacities(
+    Graph(
+        V=list(range(nodes + 1)),
+        E=edges,
+        c=[1] * len(edges),
+    )
+)
 
 print(f"{nodes + 1} {len(edges)} 0 {nodes}")
-for u, v, cap in edges:
+for i, (u, v) in enumerate(edges):
+    cap = g.c[i]
     print(f"{u}-({cap})>{v}")

@@ -1,9 +1,8 @@
-from src.utils import Edge
+from src.utils import Edge, parse_input
 from tests.known_inputs import GEEKS_FOR_GEEKS_GRAPH
 from tests.scripts.generator_dag import make_random_dag
 from tests.utils import (
     bench,
-    parse_input,
     run_test,
     run_test_with_topsort,
     wrap_correct,

@@ -1,7 +1,4 @@
 # https://cp-algorithms.com/graph/edmonds_karp.html
-import pytest
-
-
 CP_ALGORITHMS_GRAPH = """
 6 9 0 5
 0-(7)>1

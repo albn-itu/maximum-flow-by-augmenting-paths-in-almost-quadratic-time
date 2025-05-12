@@ -1,5 +1,6 @@
 from collections import defaultdict
 from dataclasses import dataclass, field
+import random
 from typing import override
 
 type Vertex = int
@@ -94,12 +95,20 @@ def make_outgoing_incoming(
 
 
 def topological_sort(G: Graph) -> list[Vertex]:
+    order, _ = topological_sort_with_backwards_edges(G)
+    return order
+
+
+def topological_sort_with_backwards_edges(
+    G: Graph,
+) -> tuple[list[Vertex], set[tuple[int, int]]]:
     adj: dict[Vertex, set[Vertex]] = defaultdict(set)
     for u, v in G.E:
         adj[u].add(v)
 
     visited: set[Vertex] = set()
     sorted_vertices: list[Vertex] = []
+    backwards_edges: set[tuple[int, int]] = set()
 
     def dfs(v: Vertex):
         visited.add(v)
@@ -107,6 +116,8 @@ def topological_sort(G: Graph) -> list[Vertex]:
         for w in adj[v]:
             if w not in visited:
                 dfs(w)
+            else:
+                backwards_edges.add((v, w))
 
         sorted_vertices.append(v)
 
@@ -114,10 +125,55 @@ def topological_sort(G: Graph) -> list[Vertex]:
         if v not in visited:
             dfs(v)
 
-    return sorted_vertices[::-1]
+    return (sorted_vertices[::-1], backwards_edges)
 
 
 def next_multiple_of(n: int, multiple_of: int) -> int:
     if multiple_of == 0:
         return n + 1
     return n + multiple_of - n % multiple_of
+
+
+def export_russian_graph(G: Graph, s: int, t: int) -> str:
+    capacities = G.c
+
+    output = [f"{len(G.V)} {len(G.E)} {s} {t}"]
+    for i, e in enumerate(G.E):
+        output.append(f"{e[0]}-({capacities[i]})>{e[1]}")
+
+    return "\n".join(output)
+
+
+def generate_random_capacities(g: Graph) -> Graph:
+    capacities = [random.randint(1, 100) for _ in range(len(g.E))]
+    return Graph(
+        V=g.V,
+        E=g.E,
+        c=capacities,
+    )
+
+
+def parse_input(input: str, expected: int) -> tuple[Graph, list[int], list[int]]:
+    lines = input.strip().split("\n")
+    _, _, s, t = map(int, lines[0].split())
+
+    edges: list[tuple[int, int]] = []
+    capacities: list[int] = []
+
+    for line in lines[1:]:
+        u, rest = line.split("-(")
+        cap, v = rest.split(")>")
+
+        edges.append((int(u), int(v)))
+        capacities.append(int(cap))
+
+    n = max(max(e[0] for e in edges), max(e[1] for e in edges)) + 1
+    vertices = list(range(n))
+
+    sources = [0] * n
+    sinks = [0] * n
+
+    sources[s] = expected
+    sinks[t] = expected
+
+    return (Graph(vertices, edges, capacities), sources, sinks)

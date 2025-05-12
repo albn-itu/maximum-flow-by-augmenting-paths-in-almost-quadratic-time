@@ -18,12 +18,11 @@ class Graph:
     degree: dict[int, int]
 
 
-def generate_phi_expander(phi=None):
+def generate_phi_expander(phi: float | None = None, n: int = -1, m: int = -1):
     for _ in range(100_000):
-        graph = generate_random_connected_graph()
+        graph = generate_random_connected_graph(n, m)
 
-        phii = phi if phi is not None else 2 ** (-math.sqrt(
-            math.log2(graph.n)))
+        phii = phi if phi is not None else 2 ** (-math.sqrt(math.log2(graph.n)))
 
         expanding = is_phi_expander(graph, phii)
 
@@ -36,7 +35,7 @@ def generate_phi_expander(phi=None):
 def expander_decompose(graph: Graph, phi: float):
     vs = list(graph.vertices)
 
-    cuts = []
+    cuts: list[tuple[float, list[int]]] = []
     find_phi_sparse_cut(graph, vs, phi, cuts=cuts)
 
     if not len(cuts):
@@ -48,7 +47,7 @@ def expander_decompose(graph: Graph, phi: float):
         if q < most_balanced[0]:
             most_balanced = q, c
         # if abs(goal - len(cut)) < abs(goal - len(most_balanced)):
-            # most_balanced = cut
+        # most_balanced = cut
 
     quality, cut = most_balanced
     a, b, crossing = split(graph, cut)
@@ -102,9 +101,18 @@ def is_phi_sparse(g: Graph, phi: float, subset: set[int]):
     return phine, quality
 
 
-def find_phi_sparse_cut(g: Graph, vs: list[int], phi: float, subset: set[int] = None, i: int = 0, cuts=None):
+def find_phi_sparse_cut(
+    g: Graph,
+    vs: list[int],
+    phi: float,
+    subset: set[int] | None = None,
+    i: int = 0,
+    cuts: list[tuple[float, list[int]]] | None = None,
+):
     if subset is None:
         subset = set()
+    if cuts is None:
+        cuts = []
 
     if i == len(vs):
         if len(subset) == 0 or len(subset) == len(vs):
@@ -123,15 +131,18 @@ def find_phi_sparse_cut(g: Graph, vs: list[int], phi: float, subset: set[int] = 
     find_phi_sparse_cut(g, vs, phi, subset, i + 1, cuts=cuts)
 
 
-def generate_random_connected_graph():
-    g = generate_random_graph()
+def generate_random_connected_graph(n: int = -1, m: int = -1):
+    g = generate_random_graph(n, m)
     while not is_connected(g):
-        g = generate_random_graph()
+        g = generate_random_graph(n, m)
     return g
 
 
-def generate_random_graph() -> Graph:
-    n, m = random.randint(7, 20), random.randint(5, 17)
+def generate_random_graph(n: int = -1, m: int = -1) -> Graph:
+    if n == -1:
+        n = random.randint(7, 20)
+    if m == -1:
+        m = random.randint(n, n * 2)
 
     adj: dict[int, set[int]] = {i: set() for i in range(n)}
     vs = list(range(n))
@@ -175,7 +186,7 @@ def generate_random_graph() -> Graph:
 
 def is_connected(graph: Graph):
     adj = defaultdict(list)
-    for (u, v) in graph.edges:
+    for u, v in graph.edges:
         adj[u].append(v)
         adj[v].append(u)
 
@@ -205,7 +216,7 @@ def split(graph: Graph, cut: set[int]):
     b_adj: AdjList = dict()
     crossing: set[tuple[int, int]] = set()
 
-    for (u, v) in graph.edges:
+    for u, v in graph.edges:
         if u in cut:
             a_adj[u] = set()
         if v in cut:
@@ -215,7 +226,7 @@ def split(graph: Graph, cut: set[int]):
         if v not in cut:
             b_adj[v] = set()
 
-    for (u, v) in graph.edges:
+    for u, v in graph.edges:
         if u in cut and v in cut:
             a_adj[u].add(v)
         elif u not in cut and v not in cut:
