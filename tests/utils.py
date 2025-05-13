@@ -34,9 +34,7 @@ def bench(
     return wrapper
 
 
-def parse_input(
-    input: str, expected: int
-) -> tuple[Graph, list[int], list[int], list[int]]:
+def parse_input(input: str, expected: int) -> tuple[Graph, list[int], list[int]]:
     lines = input.strip().split("\n")
     _, _, s, t = map(int, lines[0].split())
 
@@ -59,24 +57,23 @@ def parse_input(
     sources[s] = expected
     sinks[t] = expected
 
-    return (Graph(vertices, edges), capacities, sources, sinks)
+    return (Graph(vertices, edges, capacities), sources, sinks)
 
 
 def wrap_correct(
     g: Graph,
-    c: list[int],
     sources: list[int],
     sinks: list[int],
     w: Callable[[Edge], int],
     h: int,
 ) -> tuple[int, dict[Edge, int] | None]:
-    edges, capacities, s, t = make_test_flow_input(g, c, sources, sinks, w, h)
+    edges, capacities, s, t = make_test_flow_input(g, sources, sinks, w, h)
 
     return (find_max_flow_correct(edges, capacities, s=s, t=t), None)
 
 
 FlowFn = Callable[
-    [Graph, list[int], list[int], list[int], Callable[[Edge], int], int],
+    [Graph, list[int], list[int], Callable[[Edge], int], int],
     tuple[int, dict[Edge, int] | None],
 ]
 
@@ -93,9 +90,9 @@ def run_test(
 
     benchmark.register_or_update("bench_config.top_sort", False, lambda x: x)
 
-    g, c, sources, sinks = parse_input(input, expected)
+    g, sources, sinks = parse_input(input, expected)
     h = h if h is not None else len(g.V) // 3
-    mf, _ = flow_fn(g, c, sources, sinks, weight_fn, h)
+    mf, _ = flow_fn(g, sources, sinks, weight_fn, h)
     benchmark.register("bench_config.expected", expected)
     assert mf == expected, f"Expected {expected}, got {mf}"
 

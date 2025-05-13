@@ -8,8 +8,12 @@ from src import benchmark
 
 def find_max_flow(edges: list[TestEdge], capacities: list[int], s: int, t: int):
     cap, _ = wrap_register_time(cap_find_max_flow, "capacity")(edges, capacities, s, t)
-    edk = wrap_register_time(lambda: MaxFlow(edges, capacities).max_flow(s, t), "edmond")()
-    pr = wrap_register_time(lambda: PushRelabel(edges, capacities).max_flow(s, t), "push_relabel")()
+    edk = wrap_register_time(
+        lambda: MaxFlow(edges, capacities).max_flow(s, t), "edmond"
+    )()
+    pr = wrap_register_time(
+        lambda: PushRelabel(edges, capacities).max_flow(s, t), "push_relabel"
+    )()
 
     assert cap == edk
     assert cap == pr

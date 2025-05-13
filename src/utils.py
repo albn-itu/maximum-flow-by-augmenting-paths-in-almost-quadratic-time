@@ -1,14 +1,8 @@
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import override
 
 type Vertex = int
-
-
-@dataclass
-class Graph:
-    V: list[Vertex]
-    E: list[tuple[Vertex, Vertex]]
 
 
 @dataclass
@@ -42,6 +36,43 @@ class Edge:
     @override
     def __str__(self) -> str:
         return f"{self.u}-({self.c})>{self.v}"
+
+
+@dataclass
+class Graph:
+    V: list[Vertex]
+    E: list[tuple[Vertex, Vertex]]
+    c: list[int]
+
+    # Our state
+    outgoing: dict[Vertex, set[Edge]] = field(default_factory=dict)
+    incoming: dict[Vertex, set[Edge]] = field(default_factory=dict)
+    incident: dict[Vertex, set[Edge]] = field(default_factory=dict)
+
+    def __post_init__(self):
+        self.outgoing, self.incoming, self.incident = make_outgoing_incoming(
+            self, self.c
+        )
+
+
+def make_outgoing_incoming(
+    G: Graph, c: list[int]
+) -> tuple[dict[Vertex, set[Edge]], dict[Vertex, set[Edge]], dict[Vertex, set[Edge]]]:
+    outgoing: dict[Vertex, set[Edge]] = {u: set() for u in G.V}
+    incoming: dict[Vertex, set[Edge]] = {u: set() for u in G.V}
+
+    for i, ((u, v), cap) in enumerate(zip(G.E, c)):
+        e = Edge(id=i + 1, u=u, v=v, c=cap, forward=True)
+        e_rev = e.reversed()
+
+        outgoing[u].add(e)
+        outgoing[v].add(e_rev)
+        incoming[u].add(e_rev)
+        incoming[v].add(e)
+
+    incident = {u: outgoing[u] | incoming[u] for u in G.V}
+
+    return outgoing, incoming, incident
 
 
 def topological_sort(G: Graph) -> list[Vertex]:
