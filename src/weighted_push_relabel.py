@@ -22,6 +22,7 @@ class WeightedPushRelabel:
     sinks: dict[Vertex, int]
     w: Callable[[Edge], int]
     h: int
+    dag_edges: set[tuple[Vertex, Vertex]] = field(default_factory=set)
 
     # State from paper
     f: dict[Edge, int] = field(default_factory=defaultdict[Edge, int])
@@ -173,20 +174,35 @@ class WeightedPushRelabel:
             return f_e
 
     def mark_admissible(self, e: Edge):
-        self.admissible_outgoing[e.start()].add(e)
         benchmark.register_or_update("blik.marked_admissible", 1, lambda x: x + 1)
+        if (e.start(), e.end()) in self.dag_edges:
+            benchmark.register_or_update(
+                "blik.dag_marked_admissible", 1, lambda x: x + 1
+            )
+
+        self.admissible_outgoing[e.start()].add(e)
         self.alive_vertices_with_no_admissible_out_edges.discard(e.start())
 
     def mark_inadmissible(self, e: Edge):
-        self.admissible_outgoing[e.start()].discard(e)
         benchmark.register_or_update("blik.marked_inadmissible", 1, lambda x: x + 1)
+        if (e.start(), e.end()) in self.dag_edges:
+            benchmark.register_or_update(
+                "blik.dag_marked_inadmissible", 1, lambda x: x + 1
+            )
+
+        self.admissible_outgoing[e.start()].discard(e)
         if len(self.admissible_outgoing[e.start()]) == 0 and e.start() in self.alive:
             self.alive_vertices_with_no_admissible_out_edges.add(e.start())
 
     def mark_dead(self, v: Vertex):
+        benchmark.register_or_update("blik.marked_dead", 1, lambda x: x + 1)
+        if v not in self.alive:
+            benchmark.register_or_update(
+                "blik.marked_dead_alread_dead", 1, lambda x: x + 1
+            )
+
         self.alive.remove(v)
         self.alive_vertices_with_no_admissible_out_edges.discard(v)
-        benchmark.register_or_update("blik.marked_dead", 1, lambda x: x + 1)
 
     def absorption(self, v: Vertex) -> int:
         return min(self.net_flow(v) + self.sources[v], self.sinks[v])
@@ -258,6 +274,7 @@ def weighted_push_relabel(
     sinks: list[int],
     w: Callable[[Edge], int],
     h: int,
+    dag_edges: set[tuple[Vertex, Vertex]] | None = None,
 ) -> tuple[int, dict[Edge, int]]:
     """
     G: a graph (V, E)
@@ -269,7 +286,7 @@ def weighted_push_relabel(
     """
     _sources = {v: sources[i] for i, v in enumerate(G.V)}
     _sinks = {v: sinks[i] for i, v in enumerate(G.V)}
-    res = weighted_push_relabel_dict(G, c, _sources, _sinks, w, h)
+    res = weighted_push_relabel_dict(G, c, _sources, _sinks, w, h, dag_edges)
 
     return res
 
@@ -281,6 +298,7 @@ def weighted_push_relabel_dict(
     sinks: dict[Vertex, int],
     w: Callable[[Edge], int],
     h: int,
+    dag_edges: set[tuple[Vertex, Vertex]] | None = None,
 ) -> tuple[int, dict[Edge, int]]:
     """
     G: a graph (V, E)
@@ -292,7 +310,11 @@ def weighted_push_relabel_dict(
     """
     start = time.time_ns()
 
-    res = WeightedPushRelabel(G, c, sources, sinks, w, h).solve()
+    instance = WeightedPushRelabel(G, c, sources, sinks, w, h)
+    if dag_edges is not None:
+        instance.dag_edges = dag_edges
+
+    res = instance.solve()
 
     end = time.time_ns()
     benchmark.register(f"blik.duration_s", (end - start) / 1e9)
