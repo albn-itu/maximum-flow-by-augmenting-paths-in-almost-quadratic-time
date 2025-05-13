@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 import heapq
 import random
+import sys
 
 from .classic_push_relabel import PushRelabel
 
@@ -100,19 +101,23 @@ def from_json_file(filename: str) -> ExpanderHierarchy:
 
 
 def phi_graph_to_graph(g: PhiGraph) -> Graph:
-    vertices = list(range(g.n))
-    capacities = [1] * g.n
+    capacities = [1] * len(g.edges)
+
+    # Remap vertices such that there are no holes
+    sorted_vertices = sorted(g.vertices)
+    vertex_map = {v: i for i, v in enumerate(sorted_vertices)}
+    edges = [(vertex_map[u], vertex_map[v]) for u, v in g.edges]
 
     return Graph(
-        V=vertices,
-        E=g.edges,
+        V=list(range(len(sorted_vertices))),
+        E=edges,
         c=capacities,
     )
 
 
 def find_furthest_reachable_vertex(G: Graph, s: int) -> int:
     # Reverse Dijkstra
-    distances = [-float("inf")] * len(G.V)
+    distances = {v: -float("inf") for v in G.V}
     distances[s] = 0
     queue = [(0, s)]
     heapq.heapify(queue)
@@ -134,32 +139,42 @@ def find_furthest_reachable_vertex(G: Graph, s: int) -> int:
                 distances[v] = new_dist
                 heapq.heappush(queue, (new_dist, v))
 
-    max_dist = max(d for d in distances if d != -float("inf"))
-    return distances.index(max_dist)
+    vertex = -1
+    max_dist = -float("inf")
+    for v in G.V:
+        if distances[v] > max_dist:
+            max_dist = distances[v]
+            vertex = v
+    return vertex
 
 
 def generate_phi_expander_hierarchy():
-    parent_size = random.randint(5, 10)
+    seed = random.randrange(sys.maxsize)
+    random.seed(seed)
+    print("Seed:", seed)
+
+    # parent_size = random.randint(6, 18)
+    parent_size = 6
 
     # 1. Generate a parent expander of size `parent_size`.
-    parent_expander = generate_phi_expander(n=parent_size)
-    children: list[PhiGraph] = []
+    parent_expander = phi_graph_to_graph(generate_phi_expander(n=parent_size))
+    print("Parent expander:", export_russian_graph(parent_expander, 0, 1))
+    print(parent_expander)
+    children: dict[int, Graph] = {}
 
     # 2. Generate `parent_size` children of size `child_size`.
-    for i in range(parent_expander.n):
+    for i, v in enumerate(parent_expander.V):
+        print(f"Generating child {i + 1} of {len(parent_expander.V)}")
         child_size = random.randint(2, parent_size - 1)
-        print(f"Generating child {i + 1} of {parent_expander.n}")
-        child = generate_phi_expander(n=child_size)
-        children.append(child)
+        children[v] = phi_graph_to_graph(generate_phi_expander(n=child_size))
 
     # 3. The parent_expander is topologically sorted to generate the weight function.
-    g = phi_graph_to_graph(parent_expander)
-    parent_order, backwards_edges = topological_sort_with_backwards_edges(g)
+    parent_order, backwards_edges = topological_sort_with_backwards_edges(
+        parent_expander
+    )
 
     # 4. Each "child" takes the place of a vertex in the parent expander.
-    vertices = 0
-    vertex_ranges: list[tuple[int, int]] = []
-    components: list[list[int]] = []
+    components: dict[int, list[int]] = {}
     edges_1: set[tuple[int, int]] = set()
 
     # If done correctly this will just be 0,1,2,3...n
@@ -168,37 +183,44 @@ def generate_phi_expander_hierarchy():
 
     # This loops through in the topological order of the parent expander
     # We do this to make the final order much easier to work with
-    for i in parent_order:
-        child = children[i]
+    for vertex in parent_order:
+        child = children[vertex]
 
         #   - The edges inside the child is the first level of the expander
-        edges = set((u + vertices, v + vertices) for u, v in child.edges)
+        vertex_start = max(final_order, default=-1) + 1
+
+        edges = set((u + vertex_start, v + vertex_start) for u, v in child.E)
         edges_1 = edges_1.union(edges)
 
-        vertex_ranges.append((vertices, vertices + child.n))
-        components.append(list(range(vertices, vertices + child.n)))
-        final_order += list(range(vertices, vertices + child.n))
-        vertices += child.n
+        components[vertex] = [v + vertex_start for v in child.V]
+        print("Vertices", components[vertex], " replaces ", vertex)
+        final_order += components[vertex]
 
     #   - The edges in the parent_expander are the second level of the expander.
     edges_2: set[tuple[int, int]] = set()
-    for u, v in parent_expander.edges:
-        vertex_range_u = vertex_ranges[u]
-        vertex_range_v = vertex_ranges[v]
+    for u, v in parent_expander.E:
+        component_u = components[u]
+        component_v = components[v]
 
         #   - The edges going to the vertex the child replaces are connected randomly to the vertices in the child
-        new_u = random.randint(vertex_range_u[0], vertex_range_u[1] - 1)
-        new_v = random.randint(vertex_range_v[0], vertex_range_v[1] - 1)
+        new_u = random.choice(component_u)
+        new_v = random.choice(component_v)
 
         edges_2.add((new_u, new_v))
 
     # The resulting graph
     all_edges = edges_1.union(edges_2).union(backwards_edges)
-    g = Graph(
-        V=list(range(vertices)),
-        E=list(all_edges),
-        c=[1] * len(all_edges),
-    )
+    try:
+        g = Graph(
+            V=sorted(final_order),
+            E=list(all_edges),
+            c=[1] * len(all_edges),
+        )
+    except KeyError as e:
+        print("Error in graph generation")
+        print("Seed", seed)
+        raise e
+
     g = generate_random_capacities(g)
 
     # 5. Choose a source and sink
@@ -214,7 +236,7 @@ def generate_phi_expander_hierarchy():
     return ExpanderHierarchy(
         G=g,
         hierarchy=[backwards_edges, edges_1, edges_2],
-        components=components,
+        components=list(components.values()),
         order=final_order,
         s=s,
         t=t,
@@ -242,5 +264,5 @@ if __name__ == "__main__":
     unix = datetime.now().timestamp()
     filename = f"expander_hierarchy_{unix}.json"
     expander_hierarchy.dump_to_json_file(f"tests/data/expander_hierarchies/{filename}")
-    expander_hierarchy.export_to_d3(f"visualisation/{filename}")
+    expander_hierarchy.export_to_d3(f"visualisation/graphs/{filename}")
     print(f"Dumped expander hierarchy to {filename}")
