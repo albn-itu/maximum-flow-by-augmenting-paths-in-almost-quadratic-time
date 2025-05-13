@@ -176,7 +176,7 @@ def generate_phi_expander_hierarchy():
 
     # 4. Each "child" takes the place of a vertex in the parent expander.
     components: dict[int, list[int]] = {}
-    edges_1: set[tuple[int, int]] = set()
+    x_1: set[tuple[int, int]] = set()
 
     # If done correctly this will just be 0,1,2,3...n
     # Read the next comment as to why that happens
@@ -191,14 +191,15 @@ def generate_phi_expander_hierarchy():
         vertex_start = max(final_order, default=-1) + 1
 
         edges = set((u + vertex_start, v + vertex_start) for u, v in child.E)
-        edges_1 = edges_1.union(edges)
+        x_1 = x_1.union(edges)
 
         components[vertex] = [v + vertex_start for v in child.V]
         print("Vertices", components[vertex], " replaces ", vertex)
         final_order += components[vertex]
 
     #   - The edges in the parent_expander are the second level of the expander.
-    edges_2: set[tuple[int, int]] = set()
+    dag_edges: set[tuple[int, int]] = set()
+    x_2: set[tuple[int, int]] = set()
     for u, v in parent_expander.E:
         component_u = components[u]
         component_v = components[v]
@@ -207,10 +208,14 @@ def generate_phi_expander_hierarchy():
         new_u = random.choice(component_u)
         new_v = random.choice(component_v)
 
-        edges_2.add((new_u, new_v))
+        new_edge = (new_u, new_v)
+        if (u, v) in backwards_edges:
+            x_2.add(new_edge)
+        else:
+            dag_edges.add(new_edge)
 
     # The resulting graph
-    all_edges = edges_1.union(edges_2).union(backwards_edges)
+    all_edges = dag_edges.union(x_1).union(x_2)
     try:
         g = Graph(
             V=sorted(final_order),
@@ -236,7 +241,7 @@ def generate_phi_expander_hierarchy():
     # 6. The resulting graph, it's hierarchy and the topological order are returned.
     return ExpanderHierarchy(
         G=g,
-        hierarchy=[backwards_edges, edges_1, edges_2],
+        hierarchy=[dag_edges, x_1, x_2],
         components=list(components.values()),
         order=final_order,
         s=s,
