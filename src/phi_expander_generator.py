@@ -62,8 +62,9 @@ def is_phi_expander(g: Graph, phi: float):
     checks = []
     vs = list(g.vertices)
 
-    phi_sparse_cut = find_phi_sparse_cut(g, vs, phi)
-    expanding = phi_sparse_cut is None
+    cuts = []
+    find_phi_sparse_cut(g, vs, phi, cuts=cuts)
+    expanding = len(cuts) == 0
 
     # quality = min([c["quality"] for c in checks])
     # if phi <= quality:
