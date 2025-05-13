@@ -18,7 +18,7 @@ class Graph:
     degree: dict[int, int]
 
 
-def generate_phi_expander(phi: float | None = None, n: int = -1, m: int = -1):
+def generate_phi_expander(phi: float | None = None, n: int = -1, m: int = -1) -> Graph:
     for _ in range(100_000):
         graph = generate_random_connected_graph(n, m)
 
@@ -32,7 +32,9 @@ def generate_phi_expander(phi: float | None = None, n: int = -1, m: int = -1):
     raise Exception("Failed to generate a ϕ-expander")
 
 
-def expander_decompose(graph: Graph, phi: float):
+def expander_decompose(
+    graph: Graph, phi: float
+) -> tuple[list[Graph], set[tuple[int, int]]]:
     vs = list(graph.vertices)
 
     cuts: list[tuple[float, list[int]]] = []
@@ -42,14 +44,14 @@ def expander_decompose(graph: Graph, phi: float):
         return [graph], set()
 
     most_balanced = cuts[0]
-    goal = len(graph.vertices) / 2
+    _ = len(graph.vertices) / 2
     for q, c in cuts:
         if q < most_balanced[0]:
             most_balanced = q, c
         # if abs(goal - len(cut)) < abs(goal - len(most_balanced)):
         # most_balanced = cut
 
-    quality, cut = most_balanced
+    _, cut = most_balanced
     a, b, crossing = split(graph, cut)
 
     r1, c1 = expander_decompose(a, phi)
@@ -58,19 +60,12 @@ def expander_decompose(graph: Graph, phi: float):
     return r1 + r2, crossing | c1 | c2
 
 
-def is_phi_expander(g: Graph, phi: float):
-    checks = []
+def is_phi_expander(g: Graph, phi: float) -> bool:
     vs = list(g.vertices)
 
-    cuts = []
+    cuts: list[tuple[float, list[int]]] = []
     find_phi_sparse_cut(g, vs, phi, cuts=cuts)
     expanding = len(cuts) == 0
-
-    # quality = min([c["quality"] for c in checks])
-    # if phi <= quality:
-    #     print(f"SUCCESS: ϕ={phi:.8f} <= {quality:.8f}")
-    # else:
-    #     print(f"FAILURE: ϕ={phi:.8f} > {quality:.8f}")
 
     if expanding:
         ...
@@ -78,7 +73,7 @@ def is_phi_expander(g: Graph, phi: float):
     return expanding
 
 
-def is_phi_sparse(g: Graph, phi: float, subset: set[int]):
+def is_phi_sparse(g: Graph, phi: float, subset: set[int]) -> tuple[bool, float]:
     s, sc = subset, g.vertices - subset
     if len(subset) >= g.n / 2:
         s, sc = sc, s
@@ -109,7 +104,7 @@ def find_phi_sparse_cut(
     subset: set[int] | None = None,
     i: int = 0,
     cuts: list[tuple[float, list[int]]] | None = None,
-):
+) -> None:
     if subset is None:
         subset = set()
     if cuts is None:
@@ -132,7 +127,7 @@ def find_phi_sparse_cut(
     find_phi_sparse_cut(g, vs, phi, subset, i + 1, cuts=cuts)
 
 
-def generate_random_connected_graph(n: int = -1, m: int = -1):
+def generate_random_connected_graph(n: int = -1, m: int = -1) -> Graph:
     g = generate_random_graph(n, m)
     while not is_connected(g):
         g = generate_random_graph(n, m)
@@ -143,9 +138,9 @@ def generate_random_graph(n: int = -1, m: int = -1) -> Graph:
     if n == -1:
         n = random.randint(7, 20)
     if m == -1:
-        m = random.randint(n, n * 2)
+        m = random.randint(n, n * 5)
 
-    adj: dict[int, set[int]] = {i: set() for i in range(n)}
+    adj: AdjList = {i: set() for i in range(n)}
     vs = list(range(n))
     for _ in range(m):
         u, v = random.sample(vs, 2)
@@ -166,10 +161,10 @@ def generate_random_graph(n: int = -1, m: int = -1) -> Graph:
 
     for v in list(adj.keys()):
         if degree[v] == 0:
-            adj.pop(v)
-            in_degree.pop(v)
-            out_degree.pop(v)
-            degree.pop(v)
+            _ = adj.pop(v)
+            _ = in_degree.pop(v)
+            _ = out_degree.pop(v)
+            _ = degree.pop(v)
 
     graph = Graph(
         n=len(adj),
@@ -185,14 +180,14 @@ def generate_random_graph(n: int = -1, m: int = -1) -> Graph:
     return graph
 
 
-def is_connected(graph: Graph):
-    adj = defaultdict(list)
+def is_connected(graph: Graph) -> bool:
+    adj: AdjList = defaultdict(set)
     for u, v in graph.edges:
-        adj[u].append(v)
-        adj[v].append(u)
+        adj[u].add(v)
+        adj[v].add(u)
 
     stack = [next(iter(graph.vertices))]
-    visited = set()
+    visited: set[int] = set()
     while stack:
         u = stack.pop()
 
@@ -212,7 +207,7 @@ def is_connected(graph: Graph):
 AdjList = dict[int, set[int]]
 
 
-def split(graph: Graph, cut: set[int]):
+def split(graph: Graph, cut: list[int]) -> tuple[Graph, Graph, set[tuple[int, int]]]:
     a_adj: AdjList = dict()
     b_adj: AdjList = dict()
     crossing: set[tuple[int, int]] = set()
@@ -265,7 +260,7 @@ def mk_from_adj(adj: AdjList) -> Graph:
 
 
 if __name__ == "__main__":
-    inp = f"""
+    inp = """
 0>1
 0>4
 1>6
@@ -290,7 +285,7 @@ if __name__ == "__main__":
 """.strip()
 
     edges = [tuple(map(int, line.split(">"))) for line in inp.split("\n")]
-    adj = defaultdict(set)
+    adj: dict[int, set[int]] = defaultdict(set)
     for u, v in edges:
         adj[u].add(v)
 

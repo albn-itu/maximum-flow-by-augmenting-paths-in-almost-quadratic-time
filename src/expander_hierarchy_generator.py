@@ -149,24 +149,25 @@ def find_furthest_reachable_vertex(G: Graph, s: int) -> int:
 
 
 def generate_phi_expander_hierarchy():
+    phi = 0.15
+
     seed = random.randrange(sys.maxsize)
     random.seed(seed)
     print("Seed:", seed)
 
-    # parent_size = random.randint(6, 18)
-    parent_size = 6
+    parent_size = random.randint(6, 15)
 
     # 1. Generate a parent expander of size `parent_size`.
-    parent_expander = phi_graph_to_graph(generate_phi_expander(n=parent_size))
+    print("Generating parent expander of size", parent_size)
+    parent_expander = phi_graph_to_graph(generate_phi_expander(phi=phi, n=parent_size))
     print("Parent expander:", export_russian_graph(parent_expander, 0, 1))
-    print(parent_expander)
     children: dict[int, Graph] = {}
 
     # 2. Generate `parent_size` children of size `child_size`.
     for i, v in enumerate(parent_expander.V):
         print(f"Generating child {i + 1} of {len(parent_expander.V)}")
         child_size = random.randint(2, parent_size - 1)
-        children[v] = phi_graph_to_graph(generate_phi_expander(n=child_size))
+        children[v] = phi_graph_to_graph(generate_phi_expander(phi=phi, n=child_size))
 
     # 3. The parent_expander is topologically sorted to generate the weight function.
     parent_order, backwards_edges = topological_sort_with_backwards_edges(
