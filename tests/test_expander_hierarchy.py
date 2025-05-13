@@ -7,7 +7,7 @@ import src.benchmark as benchmark
 from src.weighted_push_relabel import weighted_push_relabel
 from src.expander_hierarchy_generator import from_json_file
 import pytest
-from src.utils import Edge, export_russian_graph
+from src.utils import Edge, export_russian_graph, parse_input
 
 from tests.utils import bench, run_test
 from .test_weighted_push_relabel import (
@@ -65,11 +65,19 @@ class TestExpanderHierarchyInputs(Base):
         self, input: str, expected: int, filename: str
     ):
         benchmark.register("bench_config.top_sort_from_expander", True)
+        benchmark.register_or_update("bench_config.top_sort", False, lambda x: x)
+        benchmark.register("bench_config.expected", expected)
+
         expander_hierarchy = from_json_file(os.path.join(TEST_FILE_DIR, filename))
+        dag_edges = expander_hierarchy.hierarchy[0]
+        benchmark.register("blik.dag_edges_count", len(dag_edges))
 
         ranks = {v: i for i, v in enumerate(expander_hierarchy.order)}
 
         def weight_fn(e: Edge):
             return abs(ranks[e.v] - ranks[e.u])
 
-        return run_test(input, expected, weighted_push_relabel, weight_fn)
+        g, sources, sinks = parse_input(input, expected)
+        h = len(g.V)
+        mf, _ = weighted_push_relabel(g, g.c, sources, sinks, weight_fn, h, dag_edges)
+        assert mf == expected, f"Expected {expected}, got {mf}"
