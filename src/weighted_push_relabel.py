@@ -133,6 +133,13 @@ class WeightedPushRelabel:
                     if c_f(e) == 0:
                         self.mark_inadmissible(e)
 
+                sum_w = sum(w[e] for e in P)
+                benchmark.register_or_update(
+                    "blik.average_w_length",
+                    sum_w / c_augment,
+                    lambda x: x + (sum_w / c_augment),
+                )
+
                 def transfer_bench_key(from_key: str, to_key: str):
                     benchmark.register_or_update(
                         to_key,
@@ -158,9 +165,11 @@ class WeightedPushRelabel:
                 result = self.amount_of_routed_flow(f)
                 benchmark.register("blik.flow", result)
                 updates = benchmark.get_or_default("blik.edge_updates", 0)
+                w_length = benchmark.get_or_default("blik.average_w_length", 0)
                 iters = benchmark.get_or_default("blik.iterations", 1)
-                if iters is not None and updates is not None:
+                if iters is not None and updates is not None and w_length is not None:
                     benchmark.register("blik.avg_updates", updates / iters)
+                    benchmark.register("blik.average_w_length", w_length / iters)
 
                 return result, f
 
