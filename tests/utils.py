@@ -19,8 +19,6 @@ def bench(
     func: Callable[Param, RetType],
     extra_args: list[tuple[str, benchmark.BenchValue]] | None = None,
 ) -> Callable[Param, RetType]:
-    print("benchmark")
-
     @wraps(func)
     def wrapper(*args: Param.args, **kwargs: Param.kwargs) -> RetType:
         test_name = os.environ.get("PYTEST_CURRENT_TEST") or "unknown"
@@ -62,10 +60,11 @@ def run_test(
     input: str,
     expected: int,
     flow_fn: FlowFn,
-    weight_fn: Callable[[Edge], int] | None = None, # type: ignore
+    weight_fn: Callable[[Edge], int] | None = None,  # type: ignore
     h: int | None = None,
 ):
     if weight_fn is None:
+
         def weight_fn(e):
             return 1
 

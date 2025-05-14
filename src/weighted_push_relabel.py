@@ -40,7 +40,6 @@ class WeightedPushRelabel:
         self.admissible_outgoing = defaultdict(set)
         self.alive_vertices_with_no_admissible_out_edges = set(self.G.V)
 
-        print(f"Initial state: {self}")
         benchmark.register(
             "instance",
             {
@@ -55,7 +54,6 @@ class WeightedPushRelabel:
         )
         # Shorthands
         w = {e: self.w(e.forward_edge()) for e in all_edges}
-        print(f"w: {w}")
         h = self.h
         f, l, c_f = self.f, self.l, self.c_f
 
