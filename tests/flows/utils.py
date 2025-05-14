@@ -45,15 +45,16 @@ def weight_function_from_flow(
     flow = pr_instance.flow
 
     ordering = topological_sort_induced_flow_dag(flow)
+    ordering_map = {v: i for i, v in enumerate(ordering)}
 
-    weights = {v: i for i, v in enumerate(ordering)}
-    for v in G.V:
-        if v not in weights:
-            weights[v] = len(G.V)
+    default = 100 * len(G.V)
 
     def weight_function(edge: Edge) -> int:
         u, v = edge.start(), edge.end()
-        return abs(weights[v] - weights[u])
+        if u not in ordering_map and v not in ordering_map:
+            return default
+
+        return abs(ordering_map.get(u, default) - ordering_map.get(v, default))
 
     return weight_function
 

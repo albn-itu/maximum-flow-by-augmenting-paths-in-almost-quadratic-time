@@ -27,6 +27,8 @@ class AlgorithmMetrics(TypedDict, total=False):
     marked_admissible: int | None
     marked_dead: int | None
     marked_inadmissible: int | None
+    dag_marked_admissible: int | None
+    dag_marked_inadmissible: int | None
     relabels: int | None
 
 
@@ -80,23 +82,21 @@ def save_plot(name: str):
     if not (work_dir / "output" / format).exists():
         (work_dir / "output" / format).mkdir()
 
-    plt.savefig(make_out_path(name, format),
-                format=format, bbox_inches="tight")
+    plt.savefig(make_out_path(name, format), format=format, bbox_inches="tight")
 
 
 def plot_cmp(data: BenchmarkData):
-    metrics = ['relabels', 'edge_updates']
+    metrics = ["relabels", "edge_updates"]
 
     for metric in metrics:
         fig, ax = plt.subplots()
-        algorithms = ['blik', 'push_relabel']
+        algorithms = ["blik", "push_relabel"]
 
         inputs = data.keys()
         series: dict[str, list[int]] = {}
 
         for alg in algorithms:
-            series[alg] = [default(data[inp][alg], metric, 0)
-                           for inp in inputs]
+            series[alg] = [default(data[inp][alg], metric, 0) for inp in inputs]
 
         x = np.arange(len(inputs))
         width = 0.35
@@ -118,7 +118,7 @@ if __name__ == "__main__":
         exit(1)
 
     bench_file = sys.argv[1]
-    with open(bench_file, 'r') as f:
+    with open(bench_file, "r") as f:
         data: BenchmarkData = json.load(f)
 
     plot_cmp(data)

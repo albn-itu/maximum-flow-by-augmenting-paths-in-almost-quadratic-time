@@ -62,11 +62,12 @@ def run_test(
     input: str,
     expected: int,
     flow_fn: FlowFn,
-    weight_fn: Callable[[Edge], int] | None = None,
+    weight_fn: Callable[[Edge], int] | None = None, # type: ignore
     h: int | None = None,
 ):
     if weight_fn is None:
-        weight_fn = lambda e: 1
+        def weight_fn(e):
+            return 1
 
     benchmark.register_or_update("bench_config.top_sort", False, lambda x: x)
 

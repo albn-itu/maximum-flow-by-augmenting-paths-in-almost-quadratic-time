@@ -173,7 +173,6 @@ def remove_cycles(
 
             if (u, v) not in edges_to_remove:
                 edges_to_remove.add((u, v))
-                print(f"Removed edge: {u} -> {v}")
 
             return True
 
@@ -261,7 +260,7 @@ def parse_input(input: str, expected: int) -> tuple[Graph, list[int], list[int]]
     s = vertex_map[s]
     t = vertex_map[t]
 
-    n = max(vertices) + 1
+    n = len(sorted_vertices)
     sources = [0] * n
     sinks = [0] * n
 
