@@ -100,6 +100,11 @@ def write_benchmark(filename: str | None = None):
     with open(dir / filename, "w") as f:
         json.dump(bench_info, f, cls=NpEncoder, indent=4, sort_keys=True)
 
+    if "tmp" not in filename:
+        tmp_file = dir / f"benchmark-tmp-{init_time}.json"
+        if tmp_file.exists():
+            tmp_file.unlink()
+
 
 def clear():
     global bench_info, cur_bench
