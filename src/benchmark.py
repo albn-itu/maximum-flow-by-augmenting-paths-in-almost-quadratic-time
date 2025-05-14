@@ -10,6 +10,7 @@ type BenchType = dict[str, dict[str, BenchValue]]
 
 bench_info: BenchType = {}
 cur_bench = None
+init_time = int(time.time())
 
 
 def start_benchmark(id: str):
@@ -84,7 +85,7 @@ def end_benchmark():
     cur_bench = None
 
     # so we have the data if we kill the program or it crashes
-    write_benchmark("benchmark-tmp.json")
+    write_benchmark(f"benchmark-tmp-{init_time}.json")
 
 
 def write_benchmark(filename: str | None = None):
