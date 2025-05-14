@@ -53,6 +53,10 @@ class Graph:
     incident: dict[Vertex, set[Edge]] = field(default_factory=dict)
 
     def __post_init__(self):
+        for u, v in self.E:
+            if u == v:
+                raise ValueError(f"Self-loop detected: {u} -> {v}")
+
         self.outgoing, self.incoming, self.incident = make_outgoing_incoming(
             self, self.c
         )
@@ -234,21 +238,34 @@ def parse_input(input: str, expected: int) -> tuple[Graph, list[int], list[int]]
 
     edges: list[tuple[int, int]] = []
     capacities: list[int] = []
+    vertices: set[int] = set()
 
     for line in lines[1:]:
         u, rest = line.split("-(")
         cap, v = rest.split(")>")
 
-        edges.append((int(u), int(v)))
+        u, v = int(u), int(v)
+        if u == v:
+            continue
+
+        vertices.add(u)
+        vertices.add(v)
+
+        edges.append((u, v))
         capacities.append(int(cap))
 
-    n = max(max(e[0] for e in edges), max(e[1] for e in edges)) + 1
-    vertices = list(range(n))
+    # Remap vertices such that there are no holes
+    sorted_vertices = sorted(vertices)
+    vertex_map = {v: i for i, v in enumerate(sorted_vertices)}
+    edges = [(vertex_map[u], vertex_map[v]) for u, v in edges]
+    s = vertex_map[s]
+    t = vertex_map[t]
 
+    n = max(vertices) + 1
     sources = [0] * n
     sinks = [0] * n
 
     sources[s] = expected
     sinks[t] = expected
 
-    return (Graph(vertices, edges, capacities), sources, sinks)
+    return (Graph(list(range(len(sorted_vertices))), edges, capacities), sources, sinks)
