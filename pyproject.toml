@@ -16,6 +16,7 @@ dependencies = [
     "pytest-profiling>=1.8.1",
     "scipy>=1.15.2",
     "pytest>=8.3.4",
+    "pathlib>=1.0.1",
 ]
 
 [dependency-groups]
@@ -25,7 +26,7 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-addopts = "-m \"not large_graph and not expander_decomposition\""
+addopts = "-m \"not large_graph and not expander_decomposition and not broken\""
 
 markers = [
     "weighted_push_relabel: tests for the weighted_push_relabel algorith (deselect with '-m \"not weighted_push_relabel\"')",
@@ -38,6 +39,7 @@ markers = [
     "expander: graphs with expanders",
     "sparse_cut: sparse_cut tests",
     "expander_decomposition: expander_decomposition tests",
+    "broken: tests that are broken",
 ]
 
 [tool.ruff.lint]

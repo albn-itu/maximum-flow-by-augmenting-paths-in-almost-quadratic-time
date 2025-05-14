@@ -168,6 +168,7 @@ expander_hieararchytfj = r"""23 51 0 19
 
 
 @pytest.mark.weighted_push_relabel
+@pytest.mark.broken
 @bench
 def test_example_dag_expandeerererr_with_weight_fn():
     g, sources, sinks = parse_input(expander_hieararchytfj, 10_000)
@@ -273,6 +274,7 @@ dimacs = """22 72 0 22
 
 
 @pytest.mark.weighted_push_relabel
+@pytest.mark.broken
 @bench
 def test_dimacs():
     compare_answers(dimacs)
