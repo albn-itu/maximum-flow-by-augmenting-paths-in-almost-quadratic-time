@@ -9,7 +9,7 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "matplotlib>=3.10.1",
+    "matplotlib==3.10.1",
     "meson>=1.7.0",
     "networkx>=3.4.2",
     "numpy>=2.2.3",
@@ -17,6 +17,7 @@ dependencies = [
     "scipy>=1.15.2",
     "pytest>=8.3.4",
     "pathlib>=1.0.1",
+    "ipykernel>=6.29.5",
 ]
 
 [dependency-groups]

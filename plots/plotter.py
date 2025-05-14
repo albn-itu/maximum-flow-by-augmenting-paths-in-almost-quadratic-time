@@ -1,70 +1,19 @@
+from collections import defaultdict
+import pathlib
 import sys
 import json
-from typing import Any
+from typing import Any, cast
 import matplotlib.pyplot as plt
 import numpy as np
-from typing import TypedDict
-import pathlib
+from preprocess import (
+    BenchmarkData,
+    ProcessedKey,
+    ProcessedRunList,
+    preprocess,
+)
 
 
-class BenchmarkConfig(TypedDict):
-    expected: int
-    file: str
-    name: str
-    sink: int
-    source: int
-    top_sort: bool
-
-
-class AlgorithmMetrics(TypedDict, total=False):
-    avg_updates: float
-    edge_updates: int
-    flow: int
-    iterations: int
-    max_edge_updates: int
-    min_edge_updates: int
-    highest_level: int | None
-    marked_admissible: int | None
-    marked_dead: int | None
-    marked_inadmissible: int | None
-    dag_marked_admissible: int | None
-    dag_marked_inadmissible: int | None
-    relabels: int | None
-
-
-class InstanceData(TypedDict):
-    h: int
-    m: int
-    n: int
-
-
-class BenchmarkResult(TypedDict):
-    bench_config: BenchmarkConfig
-    blik: AlgorithmMetrics
-    capacity: AlgorithmMetrics
-    edmond: AlgorithmMetrics
-    push_relabel: AlgorithmMetrics
-    duration_s: float
-    end: int
-    instance: InstanceData
-    start: int
-
-
-# Example for handling multiple test cases in a JSON file
-type BenchmarkData = dict[str, BenchmarkResult]
-
-
-def default[T](data: dict[str, T], key: str, default: T) -> T:
-    try:
-        return data[key]
-    except KeyError:
-        return default
-
-
-def dbg[T](data: T, **kwargs) -> T:
-    print(data, "tags:", {k: v for k, v in kwargs.items()})
-    return data
-
+type BenchmarkGroups = dict[str, dict[str, list[BenchmarkResult]]]
 
 work_dir = pathlib.Path(__file__).parent.resolve()
 
@@ -85,31 +34,87 @@ def save_plot(name: str):
     plt.savefig(make_out_path(name, format), format=format, bbox_inches="tight")
 
 
-def plot_cmp(data: BenchmarkData):
-    metrics = ["relabels", "edge_updates"]
+def group_by(data: ProcessedRunList, key: str) -> dict[ProcessedKey, ProcessedRunList]:
+    grouped: dict[ProcessedKey, ProcessedRunList] = defaultdict(list)
+    for run in data:
+        grouped[run[key]].append(run)
+    return grouped
 
+
+def no_correct_flow(data: ProcessedRunList) -> ProcessedRunList:
+    return [
+        run for run in data if run["function_name"] != "test_correct_flow_algorithms"
+    ]
+
+
+def cmp_weight_functions(data: ProcessedRunList):
+    metrics = [
+        "avg_updates",
+        "average_w_length",
+        "duration_s",
+        "marked_admissible",
+        "marked_dead",
+        "marked_inadmissible",
+        "relabels",
+        "iterations",
+        "edge_updates",
+        "highest_level",
+        "before_kill.marked_admissible",
+        "before_kill.marked_inadmissible",
+        "before_kill.relabels",
+    ]
     for metric in metrics:
-        fig, ax = plt.subplots()
-        algorithms = ["blik", "push_relabel"]
+        prefixed_metric = f"blik.{metric}"
 
-        inputs = data.keys()
-        series: dict[str, list[int]] = {}
+        by_class = group_by(data, "class_name")
+        for class_name, class_runs in by_class.items():
+            if class_name is None:
+                continue
 
-        for alg in algorithms:
-            series[alg] = [default(data[inp][alg], metric, 0) for inp in inputs]
+            by_param_id = group_by(class_runs, "param_id")
+            functions: dict[str, list[int]] = {
+                name: []
+                for name in set(
+                    str(run["function_name"]) for run in no_correct_flow(class_runs)
+                )
+            }
 
-        x = np.arange(len(inputs))
-        width = 0.35
+            for param_id in sorted(list([str(id) for id in by_param_id.keys()])):
+                param_runs = by_param_id[param_id]
+                for run in no_correct_flow(param_runs):
+                    function_name = str(run["function_name"])
+                    functions[function_name].append(cast(int, run[prefixed_metric]))
 
-        for i, (alg, values) in enumerate(series.items()):
-            offset = width * i
-            ax.bar(x + offset, values, width - 0.05, label=alg)
+            x_axis: list[str] = []
+            for id in by_param_id.keys():
+                thing = by_param_id[id][-1]
+                x_axis.append(
+                    f"{thing['instance.n']} {thing['instance.m']} {thing['instance.h']}"
+                )
 
-        ax.set_ylabel(metric)
-        ax.set_xticks(x + width, inputs)
-        ax.legend()
+            x = np.arange(len(x_axis))
+            width = 0.25
+            multiplier = 0
 
-        save_plot(f"cmp_{metric}")
+            fig, ax = plt.subplots(layout="constrained")
+
+            for function_name, measurement in functions.items():
+                offset = width * multiplier
+                rects = ax.bar(x + offset, measurement, width, label=function_name)
+                # ax.bar_label(rects, padding=3)
+                multiplier += 1
+
+            ax.set_title(f"{metric} for {class_name}")
+            ax.set_ylabel(metric)
+            ax.set_xticks(x + width, x_axis, rotation=90)
+            ax.legend()
+            save_plot(f"cmp_{metric}_{class_name}")
+
+
+def load_data(file_path: str) -> BenchmarkData:
+    with open(file_path, "r") as f:
+        data: BenchmarkData = json.load(f)
+    return data
 
 
 if __name__ == "__main__":
@@ -118,7 +123,7 @@ if __name__ == "__main__":
         exit(1)
 
     bench_file = sys.argv[1]
-    with open(bench_file, "r") as f:
-        data: BenchmarkData = json.load(f)
+    data = load_data(bench_file)
 
-    plot_cmp(data)
+    preprocessed_data = preprocess(data)
+    cmp_weight_functions(preprocessed_data)
