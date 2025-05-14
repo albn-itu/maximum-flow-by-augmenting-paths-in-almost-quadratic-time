@@ -138,7 +138,7 @@ def generate_random_graph(n: int = -1, m: int = -1) -> Graph:
     if n == -1:
         n = random.randint(7, 20)
     if m == -1:
-        m = random.randint(n, n * 5)
+        m = random.randint(n, n * n)
 
     adj: AdjList = {i: set() for i in range(n)}
     vs = list(range(n))
