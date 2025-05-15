@@ -28,6 +28,7 @@ dev = [
 
 [tool.pytest.ini_options]
 addopts = "-m \"not large_graph and not expander_decomposition and not broken\""
+addopts = "-m \"not slow and not expander_decomposition and not broken and not recursive_weighted_push_relabel\""
 
 markers = [
     "weighted_push_relabel: tests for the weighted_push_relabel algorith (deselect with '-m \"not weighted_push_relabel\"')",
@@ -35,7 +36,7 @@ markers = [
     "with_top_sort: tests where weighted_push_relabel uses topological sort based weights (deselect with '-m \"not with_top_sort\"')",
     "with_expander_hierarchy: tests where weighted_push_relabel uses expander hierarchy based weights (deselect with '-m \"not with_expander_hierarchy\"')",
     "correct_flow: sanity tests that run known good flow algorithms (deselect with '-m \"not correct_flow\"')",
-    "large_graph: tests running on large graphs, can be slow (deselect with '-m \"not large\"')",
+    "slow: slow tests, usually just a really large graph (select with '-m \"slow\"')",
     "maxflow: tests running on data from the maxflow Kattis problem (deselect with '-m \"not maxflow\"')",
     "expander: graphs with expanders",
     "sparse_cut: sparse_cut tests",

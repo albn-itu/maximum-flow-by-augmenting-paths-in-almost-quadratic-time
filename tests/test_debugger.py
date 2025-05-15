@@ -29,7 +29,7 @@ def compare_answers(
 
 
 @pytest.mark.weighted_push_relabel
-@pytest.mark.large_graph  # Its not really, it's just really slow
+@pytest.mark.slow
 def test_compare_random_dags_with_correct_answer():
     for i in range(1_000):
         dag = make_random_dag()

@@ -93,42 +93,42 @@ class TestRandomInputs(TopSortable):
 
 
 @typing.final
-@pytest.mark.large_graph
+@pytest.mark.slow
 class TestLargeInputsDAG(TopSortable):
     file_based = True
     params = large_inputs.DAG_INPUT_EXPECTED
 
 
 @typing.final
-@pytest.mark.large_graph
+@pytest.mark.slow
 class TestLargeInputsFullyConnected(Base):
     file_based = True
     params = large_inputs.FULLY_CONNECTED_INPUT_EXPECTED
 
 
 @typing.final
-@pytest.mark.large_graph
+@pytest.mark.slow
 class TestLargeInputsLine(TopSortable):
     file_based = True
     params = large_inputs.LINE_INPUT_EXPECTED
 
 
 @typing.final
-@pytest.mark.large_graph
+@pytest.mark.slow
 class TestLargeInputsMaxflowDAG(TopSortable):
     file_based = True
     params = large_inputs.MAXFLOW_DAG_INPUT_EXPECTED
 
 
 @typing.final
-@pytest.mark.large_graph
+@pytest.mark.slow
 class TestLargeInputsMaxflow(Base):
     file_based = True
     params = large_inputs.MAXFLOW_NOT_DAG_INPUT_EXPECTED
 
 
 @typing.final
-@pytest.mark.large_graph
+@pytest.mark.slow
 class TestLargeInputsWaissi(Base):
     file_based = True
     params = large_inputs.WAISSI_INPUT_EXPECTED
