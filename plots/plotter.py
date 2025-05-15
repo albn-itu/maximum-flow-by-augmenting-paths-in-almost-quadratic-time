@@ -48,22 +48,22 @@ def no_correct_flow(data: ProcessedRunList) -> ProcessedRunList:
 
 
 def cmp_weight_functions(data: ProcessedRunList):
-    metrics = [
-        "avg_updates",
-        "average_w_length",
-        "duration_s",
-        "marked_admissible",
-        "marked_dead",
-        "marked_inadmissible",
-        "relabels",
-        "iterations",
-        "edge_updates",
-        "highest_level",
-        "before_kill.marked_admissible",
-        "before_kill.marked_inadmissible",
-        "before_kill.relabels",
+    metrics: list[tuple[str, str | None]] = [
+        ("avg_updates", None),
+        ("average_w_length", None),
+        ("duration_s", "instance.n"),
+        ("marked_admissible", "instance.m"),
+        ("marked_dead", "instance.n"),
+        ("marked_inadmissible", "instance.m"),
+        ("before_kill.marked_admissible", "instance.m"),
+        ("before_kill.marked_inadmissible", "instance.m"),
+        ("before_kill.relabels", "instance.n"),
+        ("relabels", "instance.n"),
+        ("iterations", "instance.n"),
+        ("edge_updates", "instance.m"),
+        ("highest_level", "instance.n"),
     ]
-    for metric in metrics:
+    for metric, normalization_parameter in metrics:
         prefixed_metric = f"blik.{metric}"
 
         by_class = group_by(data, "class_name")
@@ -72,7 +72,7 @@ def cmp_weight_functions(data: ProcessedRunList):
                 continue
 
             by_param_id = group_by(class_runs, "param_id")
-            functions: dict[str, list[int]] = {
+            functions: dict[str, list[float]] = {
                 name: []
                 for name in set(
                     str(run["function_name"]) for run in no_correct_flow(class_runs)
@@ -83,7 +83,11 @@ def cmp_weight_functions(data: ProcessedRunList):
                 param_runs = by_param_id[param_id]
                 for run in no_correct_flow(param_runs):
                     function_name = str(run["function_name"])
-                    functions[function_name].append(cast(int, run[prefixed_metric]))
+
+                    measurement = cast(float, run[prefixed_metric])
+                    if normalization_parameter is not None:
+                        measurement /= cast(float, run[normalization_parameter])
+                    functions[function_name].append(measurement)
 
             x_axis: list[str] = []
             for id in by_param_id.keys():
@@ -104,7 +108,10 @@ def cmp_weight_functions(data: ProcessedRunList):
                 # ax.bar_label(rects, padding=3)
                 multiplier += 1
 
-            ax.set_title(f"{metric} for {class_name}")
+            title = f"{metric} for {class_name}"
+            if normalization_parameter is not None:
+                title += f" normalized by {normalization_parameter}"
+            ax.set_title(title)
             ax.set_ylabel(metric)
             ax.set_xticks(x + width, x_axis, rotation=90)
             ax.legend()
