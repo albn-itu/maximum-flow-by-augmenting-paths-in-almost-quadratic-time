@@ -27,8 +27,7 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-addopts = "-m \"not large_graph and not expander_decomposition and not broken\""
-addopts = "-m \"not slow and not expander_decomposition and not broken and not recursive_weighted_push_relabel\""
+addopts = "-m \"not slow and not expander_decomposition and not broken\""
 
 markers = [
     "weighted_push_relabel: tests for the weighted_push_relabel algorith (deselect with '-m \"not weighted_push_relabel\"')",
