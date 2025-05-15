@@ -47,6 +47,20 @@ def no_correct_flow(data: ProcessedRunList) -> ProcessedRunList:
     ]
 
 
+def weight_function_to_color(function_name: str) -> str:
+    if function_name == "test_correct_flow_algorithms":
+        return "black"
+    if function_name == "test_weighted_push_relabel":
+        return "tab:blue"
+    if function_name == "test_weighted_push_relabel_with_flow_weight":
+        return "tab:green"
+    if function_name == "test_weighted_push_relabel_with_expander_hierarchy_weights":
+        return "tab:orange"
+    if function_name == "test_weighted_push_relabel_with_topsort":
+        return "tab:red"
+    raise ValueError(f"Unknown function name: {function_name}")
+
+
 def cmp_weight_functions(data: ProcessedRunList):
     metrics: list[tuple[str, str | None]] = [
         ("avg_updates", None),
@@ -104,7 +118,24 @@ def cmp_weight_functions(data: ProcessedRunList):
 
             for function_name, measurement in functions.items():
                 offset = width * multiplier
-                rects = ax.bar(x + offset, measurement, width, label=function_name)
+
+                real_name = function_name.replace("test_", "")
+                if real_name == "weighted_push_relabel":
+                    real_name = "No weights"
+                else:
+                    real_name = (
+                        real_name.replace("weighted_push_relabel_", "")
+                        .replace("_", " ")
+                        .title()
+                    )
+
+                rects = ax.bar(
+                    x + offset,
+                    measurement,
+                    width,
+                    label=real_name,
+                    color=weight_function_to_color(function_name),
+                )
                 # ax.bar_label(rects, padding=3)
                 multiplier += 1
 
