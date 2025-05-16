@@ -58,6 +58,10 @@ def weight_function_to_color(function_name: str) -> str:
         return "tab:orange"
     if function_name == "test_weighted_push_relabel_with_topsort":
         return "tab:red"
+    if function_name == "test_weighted_push_relabel_with_n_weight":
+        return "tab:gray"
+    if function_name == "test_weighted_push_relabel_with_2_weight":
+        return "tab:purple"
     raise ValueError(f"Unknown function name: {function_name}")
 
 

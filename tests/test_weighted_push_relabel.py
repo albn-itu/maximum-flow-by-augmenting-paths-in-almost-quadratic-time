@@ -26,6 +26,18 @@ class Base:
         run_test(input, expected, weighted_push_relabel)
 
     @pytest.mark.weighted_push_relabel
+    @pytest.mark.with_n_weight
+    @bench
+    def test_weighted_push_relabel_with_n_weight(self, input: str, expected: int):
+        n = int(input.split()[0])
+        run_test(input, expected, weighted_push_relabel, weight_fn=lambda x: 2 * n)
+
+    @pytest.mark.weighted_push_relabel
+    @bench
+    def test_weighted_push_relabel_with_2_weight(self, input: str, expected: int):
+        run_test(input, expected, weighted_push_relabel, weight_fn=lambda _: 2)
+
+    @pytest.mark.weighted_push_relabel
     @pytest.mark.with_flow_weight
     @bench
     def test_weighted_push_relabel_with_flow_weight(self, input: str, expected: int):
