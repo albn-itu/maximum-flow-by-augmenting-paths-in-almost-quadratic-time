@@ -1,5 +1,7 @@
 import os
 
+from tests.utils import parse_maxflow_file_names
+
 DAG_INPUT_EXPECTED = [
     ("tests/data/dag_edges_25.txt", 65, "dag_edges_25"),
     ("tests/data/dag_edges_50.txt", 169, "dag_edges_50"),
@@ -27,21 +29,6 @@ LINE_INPUT_EXPECTED = [
     ("tests/data/line_edges_250.txt", 4, "line_edges_250"),
     ("tests/data/line_edges_500.txt", 4, "line_edges_500"),
 ]
-
-
-def parse_maxflow_file_names(files: list[str]) -> list[tuple[str, int, str]]:
-    file_expected: list[tuple[str, int, str]] = []
-
-    for file in files:
-        base_name = os.path.basename(file)
-
-        _, _, _, expected = base_name.split("_")
-        expected = int(expected.split(".")[0])
-
-        file_expected.append((file, expected, base_name))
-
-    return file_expected
-
 
 MAXFLOW_DAG_FILES = [
     "tests/data/maxflow/000_4_5_3.txt",

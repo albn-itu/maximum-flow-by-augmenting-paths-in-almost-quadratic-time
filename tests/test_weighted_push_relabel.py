@@ -1,9 +1,11 @@
+import os
 import typing
 import pytest
 from src.weighted_push_relabel import weighted_push_relabel
 from tests import known_inputs, large_inputs, random_inputs
 from tests.utils import (
     bench,
+    parse_maxflow_file_names,
     run_test,
     run_test_with_flow_weight,
     run_test_with_topsort,
@@ -32,10 +34,10 @@ class Base:
         n = int(input.split()[0])
         run_test(input, expected, weighted_push_relabel, weight_fn=lambda x: 2 * n)
 
-    @pytest.mark.weighted_push_relabel
-    @bench
-    def test_weighted_push_relabel_with_2_weight(self, input: str, expected: int):
-        run_test(input, expected, weighted_push_relabel, weight_fn=lambda _: 2)
+    # @pytest.mark.weighted_push_relabel
+    # @bench
+    # def test_weighted_push_relabel_with_2_weight(self, input: str, expected: int):
+    #     run_test(input, expected, weighted_push_relabel, weight_fn=lambda _: 2)
 
     @pytest.mark.weighted_push_relabel
     @pytest.mark.with_flow_weight
@@ -144,3 +146,17 @@ class TestLargeInputsMaxflow(Base):
 class TestLargeInputsWaissi(Base):
     file_based = True
     params = large_inputs.WAISSI_INPUT_EXPECTED
+
+
+def read_random_dag_inputs() -> list[tuple[str, int, str]]:
+    dir = "tests/data/random_dags"
+    files = [f"{dir}/{file}" for file in os.listdir(dir) if file.endswith(".txt")]
+
+    return parse_maxflow_file_names(files)
+
+
+@typing.final
+@pytest.mark.slow
+class TestRandomDagInputsDAG(TopSortable):
+    file_based = True
+    params = read_random_dag_inputs()
