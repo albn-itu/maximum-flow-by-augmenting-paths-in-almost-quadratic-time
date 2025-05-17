@@ -65,13 +65,18 @@ def create_test_params(class_instance: Base) -> tuple[list[tuple[str, int]], lis
             params[i] = (read_file(input), expected, id)
         class_instance.file_based = False
 
-    in_ex: list[tuple[str, int]] = []
+    in_ex_dict: dict[str, tuple[str, int]] = {}
     ids: list[str] = []
 
     for param in params:
         input, expected, id = param
-        in_ex.append((input, expected))
+        in_ex_dict[id] = (input, expected)
         ids.append(id)
+
+    in_ex: list[tuple[str, int]] = []
+    ids = sorted(ids)
+    for id in ids:
+        in_ex.append(in_ex_dict[id])
 
     return in_ex, ids
 
@@ -148,8 +153,7 @@ class TestLargeInputsWaissi(Base):
     params = large_inputs.WAISSI_INPUT_EXPECTED
 
 
-def read_random_dag_inputs() -> list[tuple[str, int, str]]:
-    dir = "tests/data/random_dags"
+def read_random_dag_inputs(dir: str) -> list[tuple[str, int, str]]:
     files = [f"{dir}/{file}" for file in os.listdir(dir) if file.endswith(".txt")]
 
     return parse_maxflow_file_names(files)
@@ -159,4 +163,11 @@ def read_random_dag_inputs() -> list[tuple[str, int, str]]:
 @pytest.mark.slow
 class TestRandomDagInputsDAG(TopSortable):
     file_based = True
-    params = read_random_dag_inputs()
+    params = read_random_dag_inputs("tests/data/random_dags")
+
+
+@typing.final
+@pytest.mark.slow
+class TestRandomCDagInputsDAG(TopSortable):
+    file_based = True
+    params = read_random_dag_inputs("tests/data/random_c_dags")
