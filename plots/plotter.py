@@ -32,9 +32,9 @@ def save_plot(name: str):
     if not (work_dir / "output" / format).exists():
         (work_dir / "output" / format).mkdir()
 
-    plt.savefig(make_out_path(name, format),
-                format=format, bbox_inches="tight",
-                dpi=300)
+    plt.savefig(
+        make_out_path(name, format), format=format, bbox_inches="tight", dpi=300
+    )
 
 
 def group_by(data: ProcessedRunList, key: str) -> dict[ProcessedKey, ProcessedRunList]:
@@ -119,8 +119,7 @@ def cmp_weight_functions(data: ProcessedRunList):
 
                     measurement = cast(float, run[prefixed_metric])
                     if normalization_parameter is not None:
-                        measurement /= cast(float,
-                                            run[normalization_parameter])
+                        measurement /= cast(float, run[normalization_parameter])
                     functions[function_name].append(measurement)
 
             x_axis: list[str] = []
@@ -178,7 +177,9 @@ def plot_with_respect_to_graph_size(data: ProcessedRunList):
 
     for fn, fn_runs in group_by(data, "function_name").items():
         x_m_series = {}
-        for n, n_runs in sorted(group_by(fn_runs, "instance.n").items(), key=lambda x: x[0], reverse=True):
+        for n, n_runs in sorted(
+            group_by(fn_runs, "instance.n").items(), key=lambda x: x[0], reverse=True
+        ):
             if n < min_n:
                 continue
 
@@ -187,12 +188,19 @@ def plot_with_respect_to_graph_size(data: ProcessedRunList):
                 "label": f"$n={int(n)}$",
                 "line": [],
             }
-            for m, runs in sorted(group_by(n_runs, "instance.m").items(), key=lambda x: x[0]):
-                val = int(average_by(runs, "blik.marked_admissible") + average_by(runs, "blik.marked_inadmissible"))
-                x_m_series[id]["line"].append((m/n, val))
+            for m, runs in sorted(
+                group_by(n_runs, "instance.m").items(), key=lambda x: x[0]
+            ):
+                val = int(
+                    average_by(runs, "blik.marked_admissible")
+                    + average_by(runs, "blik.marked_inadmissible")
+                )
+                x_m_series[id]["line"].append((m / n, val))
 
         x_n_series = {}
-        for m, m_runs in sorted(group_by(fn_runs, "instance.m").items(), key=lambda x: x[0], reverse=True):
+        for m, m_runs in sorted(
+            group_by(fn_runs, "instance.m").items(), key=lambda x: x[0], reverse=True
+        ):
             if m < min_m:
                 continue
 
@@ -201,8 +209,13 @@ def plot_with_respect_to_graph_size(data: ProcessedRunList):
                 "label": f"$m={int(m)}$",
                 "line": [],
             }
-            for n, runs in sorted(group_by(m_runs, "instance.n").items(), key=lambda x: x[0]):
-                val = int(average_by(runs, "blik.marked_admissible") + average_by(runs, "blik.marked_inadmissible"))
+            for n, runs in sorted(
+                group_by(m_runs, "instance.n").items(), key=lambda x: x[0]
+            ):
+                val = int(
+                    average_by(runs, "blik.marked_admissible")
+                    + average_by(runs, "blik.marked_inadmissible")
+                )
                 x_n_series[id]["line"].append((n, val))
 
         by_fn[fn] = {
@@ -222,23 +235,33 @@ def plot_with_respect_to_graph_size(data: ProcessedRunList):
             z = np.polyfit(xs, ys, 2)
             p = np.poly1d(z)
 
-            yhat = p(xs)                         # or [p(z) for z in x]
-            ybar = np.sum(ys)/len(ys)          # or sum(y)/len(y)
-            ssreg = np.sum((yhat-ybar)**2)   # or sum([ (yihat - ybar)**2 for yihat in yhat])
-            sstot = np.sum((np.array(ys) - ybar)**2)    # or sum([ (yi - ybar)**2 for yi in y])
+            yhat = p(xs)  # or [p(z) for z in x]
+            ybar = np.sum(ys) / len(ys)  # or sum(y)/len(y)
+            ssreg = np.sum(
+                (yhat - ybar) ** 2
+            )  # or sum([ (yihat - ybar)**2 for yihat in yhat])
+            sstot = np.sum(
+                (np.array(ys) - ybar) ** 2
+            )  # or sum([ (yi - ybar)**2 for yi in y])
             r2 = ssreg / sstot
 
             fit_eq = f"$R^2={r2:.3f}$: ${z[0]:.2f}x^2 + {z[1]:.2f}x + c$"
 
-            l = ax.plot(xs, ys, label=item["label"] + f" ({fit_eq})", marker="o", linestyle='None')
+            l = ax.plot(
+                xs,
+                ys,
+                label=item["label"] + f" ({fit_eq})",
+                marker="o",
+                linestyle="None",
+            )
 
             fx = np.linspace(min(xs), max(xs), 100)
-            ax.plot(fx, p(fx), linestyle='--', alpha=0.5, color=l[0].get_color())
+            ax.plot(fx, p(fx), linestyle="--", alpha=0.5, color=l[0].get_color())
 
         # Put a legend to the right of the current axis
         box = ax.get_position()
         ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
-        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
 
         return fig, ax
 
@@ -251,7 +274,9 @@ def plot_with_respect_to_graph_size(data: ProcessedRunList):
         ax.set_xscale("log", base=2)
         ax.set_yscale("log", base=2)
         ax.xaxis.set_major_formatter(mticker.StrMethodFormatter("{x:.0f}"))
-        ax.set_title(f"Number of status changes for different graph sizes ({name})", loc="left")
+        ax.set_title(
+            f"Number of status changes for different graph sizes ({name})", loc="left"
+        )
         ax.grid(True)
         save_plot(f"graph_size_xm_{fn}")
 
@@ -261,7 +286,9 @@ def plot_with_respect_to_graph_size(data: ProcessedRunList):
         ax.set_xscale("log", base=2)
         ax.set_yscale("log", base=2)
         ax.xaxis.set_major_formatter(mticker.StrMethodFormatter("{x:.0f}"))
-        ax.set_title(f"Number of status changes for different graph sizes ({name})", loc="left")
+        ax.set_title(
+            f"Number of status changes for different graph sizes ({name})", loc="left"
+        )
         ax.grid(True)
         save_plot(f"graph_size_xn_{fn}")
 
@@ -284,7 +311,6 @@ def plot_with_respect_to_graph_size(data: ProcessedRunList):
     # ax.set_title("Number of status changes for different graph sizes")
     # save_plot("graph_size_xn")
 
-
     # for r in table:
     #     print(r)
     #
@@ -303,6 +329,97 @@ def plot_with_respect_to_graph_size(data: ProcessedRunList):
     # print(json.dumps(by_fn, indent=2)
 
 
+def cmp_weight_functions_avg(data: ProcessedRunList, sizes: list[tuple[int, int]]):
+    metrics: list[tuple[str, str | None]] = [
+        # ("avg_updates", None),
+        # ("average_w_length", None),
+        ("duration_s", "instance.n"),
+        # ("marked_admissible", "instance.m"),
+        # ("marked_dead", "instance.n"),
+        # ("marked_inadmissible", "instance.m"),
+        # ("before_kill.marked_admissible", "instance.m"),
+        # ("before_kill.marked_inadmissible", "instance.m"),
+        # ("state_change.marked_admissible", "instance.m"),
+        # ("state_change.marked_inadmissible", "instance.m"),
+        ("state_change.state_changes", "instance.m"),
+        # ("before_kill.relabels", "instance.n"),
+        ("relabels", "instance.n"),
+        # ("iterations", "instance.n"),
+        # ("edge_updates", "instance.m"),
+        # ("highest_level", "instance.n"),
+    ]
+    for metric, normalization_parameter in metrics:
+        prefixed_metric = f"blik.{metric}"
+
+        by_class = group_by(no_correct_flow(data), "class_name")
+        for class_name, class_runs in by_class.items():
+            if class_name is None:
+                continue
+
+            functions: dict[str, list[float]] = {
+                name: []
+                for name in set(str(run["function_name"]) for run in class_runs)
+            }
+
+            x_axis: list[str] = []
+
+            for n, n_runs in group_by(class_runs, "instance.n").items():
+                for m, m_runs in group_by(n_runs, "instance.m").items():
+                    if (n, m) not in sizes:
+                        continue
+
+                    x_axis.append(f"{n} {m}")
+
+                    for function_name, function_runs in group_by(
+                        m_runs, "function_name"
+                    ).items():
+                        measurement = average_by(function_runs, prefixed_metric)
+                        if normalization_parameter is not None:
+                            measurement /= cast(
+                                float, function_runs[0][normalization_parameter]
+                            )
+                        functions[str(function_name)].append(measurement)
+
+            x = np.arange(len(x_axis))
+            width = 0.25
+            multiplier = 0
+
+            fig, ax = plt.subplots(layout="constrained")
+            # fig.set_size_inches((20, 6))
+
+            for function_name, measurement in functions.items():
+                offset = width * multiplier
+
+                real_name = function_name.replace("test_", "")
+                if real_name == "weighted_push_relabel":
+                    real_name = "No weights"
+                else:
+                    real_name = (
+                        real_name.replace("weighted_push_relabel_", "")
+                        .replace("_", " ")
+                        .title()
+                    )
+
+                rects = ax.bar(
+                    x + offset,
+                    measurement,
+                    width,
+                    label=real_name,
+                    color=weight_function_to_color(function_name),
+                )
+                # ax.bar_label(rects, padding=3)
+                multiplier += 1
+
+            title = f"{metric} for {class_name}"
+            if normalization_parameter is not None:
+                title += f" normalized by {normalization_parameter}"
+            ax.set_title(title)
+            ax.set_ylabel(metric)
+            ax.set_xticks(x + width, x_axis, rotation=90)
+            ax.legend()
+            save_plot(f"cmp_{metric}_{class_name}")
+
+
 def load_data(file_path: str) -> BenchmarkData:
     with open(file_path, "r") as f:
         data: BenchmarkData = json.load(f)
@@ -315,13 +432,57 @@ def load_data(file_path: str) -> BenchmarkData:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: uv run plotter.py <path_to_bench_file>")
-        exit(1)
+    # if len(sys.argv) < 2:
+    #     print("Usage: uv run plotter.py <path_to_bench_file>")
+    #     exit(1)
+    #
+    # bench_file = sys.argv[1]
+    # data = load_data(bench_file)
+    #
+    # preprocessed_data = preprocess(data)
+    # # plot_with_respect_to_graph_size(no_correct_flow(preprocessed_data))
+    # cmp_weight_functions(preprocessed_data)
 
-    bench_file = sys.argv[1]
-    data = load_data(bench_file)
+    files = [
+        # ("benches/varying-expanders-collected.json")
+        (
+            "benches/non-dag-runs-18-may-13:08.json",
+            [
+                (256, 256),
+                (256, 512),
+                (256, 1024),
+                (256, 2048),
+            ],
+        ),
+        (
+            "benches/dag-runs-18-may-12:57.json",
+            [
+                (256, 256),
+                (256, 512),
+                (256, 1024),
+                (256, 2048),
+            ],
+        ),
+        (
+            "benches/fully-connected-same-cap.json",
+            [
+                (8, 56),
+                (16, 240),
+                (32, 992),
+                (64, 4032),
+            ],
+        ),
+    ]
 
-    preprocessed_data = preprocess(data)
-    # plot_with_respect_to_graph_size(no_correct_flow(preprocessed_data))
-    cmp_weight_functions(preprocessed_data)
+    for file, sizes in files:
+        print(f"Processing {file}")
+        data = load_data(file)
+        preprocessed_data = preprocess(data)
+
+        cmp_weight_functions_avg(preprocessed_data, sizes)
+
+# Expander graphs:
+# n=90, m=± (averaged),
+# n=210, m=± (averaged),
+# n=306, m=± (averaged),
+# n=420, m=± (averaged),
