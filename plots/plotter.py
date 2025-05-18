@@ -361,24 +361,35 @@ def cmp_weight_functions_avg(data: ProcessedRunList, sizes: list[tuple[int, int]
                 for name in set(str(run["function_name"]) for run in class_runs)
             }
 
+            def do(runs: ProcessedRunList):
+                for function_name, function_runs in group_by(
+                    runs, "function_name"
+                ).items():
+                    measurement = average_by(function_runs, prefixed_metric)
+                    if normalization_parameter is not None:
+                        measurement /= cast(
+                            float, function_runs[0][normalization_parameter]
+                        )
+                    functions[str(function_name)].append(measurement)
+
             x_axis: list[str] = []
 
             for n, n_runs in group_by(class_runs, "instance.n").items():
-                for m, m_runs in group_by(n_runs, "instance.m").items():
-                    if (n, m) not in sizes:
+                if type(sizes[0]) == int:
+                    if n not in sizes:
                         continue
 
-                    x_axis.append(f"{n} {m}")
+                    m = average_by(n_runs, "instance.m")
+                    x_axis.append(f"{n} {m:.0f}")
+                    do(n_runs)
 
-                    for function_name, function_runs in group_by(
-                        m_runs, "function_name"
-                    ).items():
-                        measurement = average_by(function_runs, prefixed_metric)
-                        if normalization_parameter is not None:
-                            measurement /= cast(
-                                float, function_runs[0][normalization_parameter]
-                            )
-                        functions[str(function_name)].append(measurement)
+                else:
+                    for m, m_runs in group_by(n_runs, "instance.m").items():
+                        if (n, m) not in sizes:
+                            continue
+
+                        x_axis.append(f"{n} {m}")
+                        do(m_runs)
 
             x = np.arange(len(x_axis))
             width = 0.25
@@ -444,34 +455,42 @@ if __name__ == "__main__":
     # cmp_weight_functions(preprocessed_data)
 
     files = [
-        # ("benches/varying-expanders-collected.json")
         (
-            "benches/non-dag-runs-18-may-13:08.json",
+            "benches/varying-expanders-collected.json",
             [
-                (256, 256),
-                (256, 512),
-                (256, 1024),
-                (256, 2048),
+                (90),
+                (210),
+                (306),
+                (420),
             ],
         ),
-        (
-            "benches/dag-runs-18-may-12:57.json",
-            [
-                (256, 256),
-                (256, 512),
-                (256, 1024),
-                (256, 2048),
-            ],
-        ),
-        (
-            "benches/fully-connected-same-cap.json",
-            [
-                (8, 56),
-                (16, 240),
-                (32, 992),
-                (64, 4032),
-            ],
-        ),
+        # (
+        #     "benches/non-dag-runs-18-may-13:08.json",
+        #     [
+        #         (256, 256),
+        #         (256, 512),
+        #         (256, 1024),
+        #         (256, 2048),
+        #     ],
+        # ),
+        # (
+        #     "benches/dag-runs-18-may-12:57.json",
+        #     [
+        #         (256, 256),
+        #         (256, 512),
+        #         (256, 1024),
+        #         (256, 2048),
+        #     ],
+        # ),
+        # (
+        #     "benches/fully-connected-same-cap.json",
+        #     [
+        #         (8, 56),
+        #         (16, 240),
+        #         (32, 992),
+        #         (64, 4032),
+        #     ],
+        # ),
     ]
 
     for file, sizes in files:
