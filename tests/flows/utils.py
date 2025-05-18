@@ -50,14 +50,18 @@ def weight_function_from_flow(
     default = 100 * len(G.V)
 
     def weight_function(edge: Edge) -> int:
-        u, v = edge.start(), edge.end()
-        if u not in ordering_map and v not in ordering_map:
+        def meta(edge: Edge) -> int:
+            u, v = edge.start(), edge.end()
+
+            if u not in ordering_map and v not in ordering_map:
+                return default
+
+            if u in flow and v in flow[u] and flow[u][v] > 0:
+                return abs(ordering_map.get(u, default) - ordering_map.get(v, default))
+
             return default
 
-        if u in flow and v in flow[u] and flow[u][v] > 0:
-            return abs(ordering_map.get(u, default) - ordering_map.get(v, default))
-
-        return default
+        return min(meta(edge), meta(edge.forward_edge()))
 
     return weight_function
 
