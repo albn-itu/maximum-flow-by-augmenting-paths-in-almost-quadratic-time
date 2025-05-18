@@ -54,7 +54,10 @@ def weight_function_from_flow(
         if u not in ordering_map and v not in ordering_map:
             return default
 
-        return abs(ordering_map.get(u, default) - ordering_map.get(v, default))
+        if u in flow and v in flow[u] and flow[u][v] > 0:
+            return abs(ordering_map.get(u, default) - ordering_map.get(v, default))
+
+        return default
 
     return weight_function
 
