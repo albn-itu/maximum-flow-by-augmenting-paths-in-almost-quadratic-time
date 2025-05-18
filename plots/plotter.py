@@ -329,7 +329,9 @@ def plot_with_respect_to_graph_size(data: ProcessedRunList):
     # print(json.dumps(by_fn, indent=2)
 
 
-def cmp_weight_functions_avg(data: ProcessedRunList, sizes: list[tuple[int, int]]):
+def cmp_weight_functions_avg(
+    data: ProcessedRunList, sizes: list[int] | list[tuple[int, int]]
+):
     metrics: list[tuple[str, str | None]] = [
         # ("avg_updates", None),
         # ("average_w_length", None),
@@ -380,7 +382,7 @@ def cmp_weight_functions_avg(data: ProcessedRunList, sizes: list[tuple[int, int]
             x_axis: list[str] = []
 
             for n, n_runs in group_by(class_runs, "instance.n").items():
-                if type(sizes[0]) == int:
+                if sizes[0] is int:
                     if n not in sizes:
                         continue
 
@@ -460,26 +462,17 @@ if __name__ == "__main__":
     # cmp_weight_functions(preprocessed_data)
 
     files = [
+        # (
+        #     "benches/varying-expanders-collected.json",
+        #     [
+        #         (90),
+        #         (210),
+        #         (306),
+        #         (420),
+        #     ],
+        # ),
         (
-            "benches/varying-expanders-collected.json",
-            [
-                (90),
-                (210),
-                (306),
-                (420),
-            ],
-        ),
-        (
-            "benches/non-dag-runs-18-may-13:08.json",
-            [
-                (256, 256),
-                (256, 512),
-                (256, 1024),
-                (256, 2048),
-            ],
-        ),
-        (
-            "benches/dag-runs-18-may-12:57.json",
+            "benches/non-dag-runs-18-may-21:16.json",
             [
                 (256, 256),
                 (256, 512),
@@ -488,7 +481,16 @@ if __name__ == "__main__":
             ],
         ),
         (
-            "benches/fully-connected-same-cap.json",
+            "benches/dag-runs-18-may-21:15.json",
+            [
+                (256, 256),
+                (256, 512),
+                (256, 1024),
+                (256, 2048),
+            ],
+        ),
+        (
+            "benches/fully-connected-same-cap-18-may-20:56.json",
             [
                 (8, 56),
                 (16, 240),
@@ -504,9 +506,3 @@ if __name__ == "__main__":
         preprocessed_data = preprocess(data)
 
         cmp_weight_functions_avg(preprocessed_data, sizes)
-
-# Expander graphs:
-# n=90, m=± (averaged),
-# n=210, m=± (averaged),
-# n=306, m=± (averaged),
-# n=420, m=± (averaged),
