@@ -75,6 +75,9 @@ def cmp_weight_functions(data: ProcessedRunList):
         ("marked_inadmissible", "instance.m"),
         ("before_kill.marked_admissible", "instance.m"),
         ("before_kill.marked_inadmissible", "instance.m"),
+        ("state_change.marked_admissible", "instance.m"),
+        ("state_change.marked_inadmissible", "instance.m"),
+        ("state_change.state_changes", "instance.m"),
         ("before_kill.relabels", "instance.n"),
         ("relabels", "instance.n"),
         ("iterations", "instance.n"),
@@ -119,6 +122,7 @@ def cmp_weight_functions(data: ProcessedRunList):
             multiplier = 0
 
             fig, ax = plt.subplots(layout="constrained")
+            fig.set_size_inches((20, 6))
 
             for function_name, measurement in functions.items():
                 offset = width * multiplier

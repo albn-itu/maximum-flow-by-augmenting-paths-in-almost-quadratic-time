@@ -72,6 +72,8 @@ def preprocess(data: BenchmarkData) -> ProcessedRunList:
     processed_runs: ProcessedRunList = []
 
     for run_name, run_data in data.items():
+        if "end" not in run_data.keys():
+            continue
         names = run_name.replace("tests/", "").replace(" (call)", "").split("::")
 
         run_file = names[0]
@@ -104,6 +106,7 @@ def preprocess(data: BenchmarkData) -> ProcessedRunList:
         processed_data = set_keys(processed_data, run_data, "capacity")
         processed_data = set_keys(processed_data, run_data, "edmond")
         processed_data = set_keys(processed_data, run_data, "push_relabel")
+        processed_data = set_keys(processed_data, run_data, "state_change")
 
         processed_runs.append(processed_data)
 
