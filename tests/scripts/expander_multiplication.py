@@ -38,7 +38,7 @@ def multiply_hierarchy(hierarchy: ExpanderHierarchy, factor: int) -> ExpanderHie
 
 
 if __name__ == "__main__":
-    dir = "tests/data/expander_hierarchies"
+    dir = "tests/data/varying_expander_hierarchies"
     files = os.listdir(dir)
     for file in files:
         if not file.endswith(".json"):
@@ -48,4 +48,9 @@ if __name__ == "__main__":
         for factor in [2, 3]:
             hierarchy = from_json_file(f"{dir}/{file}")
             hierarchy = multiply_hierarchy(hierarchy, 3)
-            hierarchy.dump_to_json_file(f"{dir}/factor_{factor}_{file}")
+
+            graphs, n, suffix = file.split("_")
+            # filename = f"factor_{factor}_{file}"
+            filename = f"{graphs}_{n}_factor-{factor}_{suffix}"
+
+            hierarchy.dump_to_json_file(f"{dir}/{filename}")

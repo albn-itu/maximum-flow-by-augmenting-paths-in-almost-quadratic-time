@@ -31,10 +31,6 @@ LINE_INPUT_EXPECTED = [
 ]
 
 MAXFLOW_DAG_FILES = [
-    "tests/data/maxflow/000_4_5_3.txt",
-    "tests/data/maxflow/000_2_1_100000.txt",
-    "tests/data/maxflow/001_2_1_0.txt",
-    "tests/data/maxflow/002_4_5_3.txt",
     "tests/data/maxflow/003_498_497_328891.txt",
     "tests/data/maxflow/004_499_498_373603.txt",
     "tests/data/maxflow/005_498_497_328891.txt",

@@ -12,18 +12,17 @@ from src.utils import Edge, export_russian_graph, parse_input
 from tests.utils import bench, run_test
 from .test_weighted_push_relabel import (
     Base,
+    InputExpected,
     create_test_params,
 )
 
-TEST_FILE_DIR = "tests/data/expander_hierarchies"
 
-
-def create_input_expected() -> list[tuple[str, int, str]]:
+def create_input_expected(dir: str) -> InputExpected:
     input_expected: list[tuple[str, int, str]] = []
-    for file in os.listdir(TEST_FILE_DIR):
+    for file in os.listdir(dir):
         if file.endswith(".json"):
             basename = os.path.basename(file)
-            hierarchy = from_json_file(os.path.join(TEST_FILE_DIR, file))
+            hierarchy = from_json_file(os.path.join(dir, file))
 
             input_expected.append(
                 (
@@ -51,10 +50,10 @@ def pytest_generate_tests(metafunc: pytest.Metafunc):
         metafunc.parametrize("input,expected", in_ex, ids=ids)
 
 
-@final
-class TestExpanderHierarchyInputs(Base):
-    file_based = False
-    params = create_input_expected()
+class ExpanderHierarchy(Base):
+    file_based: bool = False
+    dir: str = ""
+    params: InputExpected = []
 
     @pytest.mark.weighted_push_relabel
     @pytest.mark.with_expander_hierarchy
@@ -68,7 +67,7 @@ class TestExpanderHierarchyInputs(Base):
         benchmark.register_or_update("bench_config.top_sort", False, lambda x: x)
         benchmark.register("bench_config.expected", expected)
 
-        expander_hierarchy = from_json_file(os.path.join(TEST_FILE_DIR, filename))
+        expander_hierarchy = from_json_file(os.path.join(self.dir, filename))
         dag_edges = expander_hierarchy.hierarchy[0]
         benchmark.register("blik.dag_edges_count", len(dag_edges))
 
@@ -81,3 +80,15 @@ class TestExpanderHierarchyInputs(Base):
         h = len(g.V)
         mf, _ = weighted_push_relabel(g, g.c, sources, sinks, weight_fn, h, dag_edges)
         assert mf == expected, f"Expected {expected}, got {mf}"
+
+
+@final
+class TestExpanderHierarchyInputs(ExpanderHierarchy):
+    dir = "tests/data/expander_hierarchies"
+    params = create_input_expected(dir)
+
+
+@final
+class TestVaryingExpanderHierarchyInputs(ExpanderHierarchy):
+    dir = "tests/data/varying_expander_hierarchies"
+    params = create_input_expected(dir)

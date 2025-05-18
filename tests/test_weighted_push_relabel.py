@@ -12,6 +12,8 @@ from tests.utils import (
     wrap_correct,
 )
 
+type InputExpected = list[tuple[str, int, str]]
+
 
 def read_file(file: str) -> str:
     with open(file, "r") as f:
@@ -32,7 +34,7 @@ class Base:
     @bench
     def test_weighted_push_relabel_with_n_weight(self, input: str, expected: int):
         n = int(input.split()[0])
-        run_test(input, expected, weighted_push_relabel, weight_fn=lambda x: 2 * n)
+        run_test(input, expected, weighted_push_relabel, weight_fn=lambda x: n)
 
     # @pytest.mark.weighted_push_relabel
     # @bench
@@ -171,3 +173,24 @@ class TestRandomDagInputsDAG(TopSortable):
 class TestRandomCDagInputsDAG(TopSortable):
     file_based = True
     params = read_random_dag_inputs("tests/data/random_c_dags")
+
+
+@typing.final
+@pytest.mark.slow
+class TestRandomFullyConnectedInputs(Base):
+    file_based = True
+    params = read_random_dag_inputs("tests/data/fully_connected")
+
+
+@typing.final
+@pytest.mark.slow
+class TestRandomFullyConnectedSameCapInputs(Base):
+    file_based = True
+    params = read_random_dag_inputs("tests/data/fully_connected_same_cap")
+
+
+@typing.final
+@pytest.mark.slow
+class TestRandomCInputs(Base):
+    file_based = True
+    params = read_random_dag_inputs("tests/data/random_graphs")

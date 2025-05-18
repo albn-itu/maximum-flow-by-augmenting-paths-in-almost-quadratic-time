@@ -171,6 +171,18 @@ class WeightedPushRelabel:
                     benchmark.register("blik.avg_updates", updates / iters)
                     benchmark.register("blik.average_w_length", w_length / iters)
 
+                marked_inadmissible = benchmark.get_or_default(
+                    "blik.state_change.marked_inadmissible", 0
+                )
+                marked_admissible = benchmark.get_or_default(
+                    "blik.state_change.marked_admissible", 0
+                )
+                if marked_inadmissible is not None and marked_admissible is not None:
+                    benchmark.register(
+                        "blik.state_change.state_changes",
+                        marked_inadmissible + marked_admissible,
+                    )
+
                 return result, f
 
     def c_f(self, e: Edge):
@@ -182,6 +194,15 @@ class WeightedPushRelabel:
 
     def mark_admissible(self, e: Edge):
         benchmark.register_or_update("blik.marked_admissible", 1, lambda x: x + 1)
+        if e not in self.admissible_outgoing[e.start()]:
+            benchmark.register_or_update(
+                "blik.state_change.marked_admissible", 1, lambda x: x + 1
+            )
+        else:
+            benchmark.register_or_update(
+                "blik.state_change.already_marked_admissible", 1, lambda x: x + 1
+            )
+
         if (e.start(), e.end()) in self.dag_edges:
             benchmark.register_or_update(
                 "blik.dag_marked_admissible", 1, lambda x: x + 1
@@ -192,6 +213,14 @@ class WeightedPushRelabel:
 
     def mark_inadmissible(self, e: Edge):
         benchmark.register_or_update("blik.marked_inadmissible", 1, lambda x: x + 1)
+        if e in self.admissible_outgoing[e.start()]:
+            benchmark.register_or_update(
+                "blik.state_change.marked_inadmissible", 1, lambda x: x + 1
+            )
+        else:
+            benchmark.register_or_update(
+                "blik.state_change.already_marked_inadmissible", 1, lambda x: x + 1
+            )
         if (e.start(), e.end()) in self.dag_edges:
             benchmark.register_or_update(
                 "blik.dag_marked_inadmissible", 1, lambda x: x + 1

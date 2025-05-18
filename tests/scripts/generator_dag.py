@@ -142,7 +142,7 @@ def generate_random_dag_nm(n: int, m: int, seed: int | None = None) -> Graph:
     capacities: list[int] = []
 
     def add_edge(u: int, v: int):
-        cap = random.randint(1, m)
+        cap = random.randint(1, 100)
         edges.append((u, v))
         capacities.append(cap)
 
@@ -170,6 +170,13 @@ def generate_random_dag_nm(n: int, m: int, seed: int | None = None) -> Graph:
     return Graph(V=list(range(n)), E=edges, c=capacities)
 
 
+def doubling_range(start: int, end: int):
+    i = start
+    while i <= end:
+        yield i
+        i *= 2
+
+
 if __name__ == "__main__":
     # for _ in range(100):
     #     print(make_random_dag())
@@ -177,16 +184,26 @@ if __name__ == "__main__":
     seed = random.randrange(sys.maxsize)
     print("Seed:", seed)
 
-    max_n = 40
-    graphs = 1
-    for n in range(2, max_n, 2):
-        for m in range(n - 1, max_n**2, 100):
-            if m != n - 1:
-                # round to nearest 100
-                m = round(m / 100) * 100
+    # ns = [256]
+    # max_n = 64
+    ns = list(doubling_range(2, 256))
+    max_n = max(ns)
+    # ms = list(doubling_range(100, max_n**2))
+    # if max_n**2 != max(ms):
+    #     ms.append(max_n**2)
 
+    graphs = 0
+    for n in ns:
+        # actual_ms = [m for m in ms if m >= n - 1]
+        # actual_ms.extend(list(doubling_range(n - 1, 100)))
+        actual_ms = []
+        c = 1
+        while c * n <= n**2:
+            actual_ms.append(c * n)
+            c *= 2
+
+        for m in actual_ms:
             for i in range(3):
-                graphs += 1
                 if graphs % 100 == 0:
                     print(f"Generating graph {graphs}")
 
@@ -201,7 +218,9 @@ if __name__ == "__main__":
                 expected = PushRelabel(g).max_flow(s, t)
 
                 filename = f"{graphs:04}_{n}_{m}_{expected}.txt"
-                path = pathlib.Path("tests/data/random_dags")
+                path = pathlib.Path("tests/data/random_c_dags")
                 path.mkdir(parents=True, exist_ok=True)
                 with open(path / filename, "w") as f:
                     f.write(export_russian_graph(g, s, t))
+
+                graphs += 1
