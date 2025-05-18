@@ -336,7 +336,7 @@ def cmp_weight_functions_avg(data: ProcessedRunList, sizes: list[tuple[int, int]
         ("duration_s", "instance.n"),
         # ("marked_admissible", "instance.m"),
         # ("marked_dead", "instance.n"),
-        # ("marked_inadmissible", "instance.m"),
+        ("edge_considerations", "instance.m"),
         # ("before_kill.marked_admissible", "instance.m"),
         # ("before_kill.marked_inadmissible", "instance.m"),
         # ("state_change.marked_admissible", "instance.m"),
@@ -365,7 +365,12 @@ def cmp_weight_functions_avg(data: ProcessedRunList, sizes: list[tuple[int, int]
                 for function_name, function_runs in group_by(
                     runs, "function_name"
                 ).items():
-                    measurement = average_by(function_runs, prefixed_metric)
+                    if metric == "edge_considerations":
+                        measurement = average_by(
+                            function_runs, "blik.marked_inadmissible"
+                        ) + average_by(function_runs, "blik.marked_admissible")
+                    else:
+                        measurement = average_by(function_runs, prefixed_metric)
                     if normalization_parameter is not None:
                         measurement /= cast(
                             float, function_runs[0][normalization_parameter]
@@ -464,33 +469,33 @@ if __name__ == "__main__":
                 (420),
             ],
         ),
-        # (
-        #     "benches/non-dag-runs-18-may-13:08.json",
-        #     [
-        #         (256, 256),
-        #         (256, 512),
-        #         (256, 1024),
-        #         (256, 2048),
-        #     ],
-        # ),
-        # (
-        #     "benches/dag-runs-18-may-12:57.json",
-        #     [
-        #         (256, 256),
-        #         (256, 512),
-        #         (256, 1024),
-        #         (256, 2048),
-        #     ],
-        # ),
-        # (
-        #     "benches/fully-connected-same-cap.json",
-        #     [
-        #         (8, 56),
-        #         (16, 240),
-        #         (32, 992),
-        #         (64, 4032),
-        #     ],
-        # ),
+        (
+            "benches/non-dag-runs-18-may-13:08.json",
+            [
+                (256, 256),
+                (256, 512),
+                (256, 1024),
+                (256, 2048),
+            ],
+        ),
+        (
+            "benches/dag-runs-18-may-12:57.json",
+            [
+                (256, 256),
+                (256, 512),
+                (256, 1024),
+                (256, 2048),
+            ],
+        ),
+        (
+            "benches/fully-connected-same-cap.json",
+            [
+                (8, 56),
+                (16, 240),
+                (32, 992),
+                (64, 4032),
+            ],
+        ),
     ]
 
     for file, sizes in files:
