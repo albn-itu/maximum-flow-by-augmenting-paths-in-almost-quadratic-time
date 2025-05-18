@@ -4,6 +4,7 @@ import sys
 import json
 from typing import Any, cast
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
 import numpy as np
 from preprocess import (
     BenchmarkData,
@@ -32,7 +33,8 @@ def save_plot(name: str):
         (work_dir / "output" / format).mkdir()
 
     plt.savefig(make_out_path(name, format),
-                format=format, bbox_inches="tight")
+                format=format, bbox_inches="tight",
+                dpi=300)
 
 
 def group_by(data: ProcessedRunList, key: str) -> dict[ProcessedKey, ProcessedRunList]:
@@ -167,9 +169,15 @@ def cmp_weight_functions(data: ProcessedRunList):
 def plot_with_respect_to_graph_size(data: ProcessedRunList):
     by_fn = dict()
 
+    min_n = 8
+    min_m = 8
+
     for fn, fn_runs in group_by(data, "function_name").items():
         x_m_series = {}
         for n, n_runs in sorted(group_by(fn_runs, "instance.n").items(), key=lambda x: x[0], reverse=True):
+            if n < min_n:
+                continue
+
             id = n
             x_m_series[id] = {
                 "label": f"$n={int(n)}$",
@@ -181,6 +189,9 @@ def plot_with_respect_to_graph_size(data: ProcessedRunList):
 
         x_n_series = {}
         for m, m_runs in sorted(group_by(fn_runs, "instance.m").items(), key=lambda x: x[0], reverse=True):
+            if m < min_m:
+                continue
+
             id = m
             x_n_series[id] = {
                 "label": f"$m={int(m)}$",
@@ -195,38 +206,62 @@ def plot_with_respect_to_graph_size(data: ProcessedRunList):
             "x=n": x_n_series,
         }
 
-    for fn in by_fn:
+    def plot_series_data(fn: str, series: str):
         plots = by_fn[fn]
-        name = fn.replace("test_", "").replace("_", " ").title()
         # print(json.dumps(series, indent=2))
 
         fig, ax = plt.subplots(layout="constrained")
-        for id, item in plots["x=m"].items():
+        fig.set_size_inches((8, 5))
+        for id, item in plots[series].items():
             xs, ys = zip(*item["line"])
-            ax.plot(xs, ys, label=item["label"], marker="o")
 
-        ax.legend()
-        ax.set_xlabel(r"$m$ (as $x \cdot n$)")
-        ax.set_ylabel("adm + inadm")
+            z = np.polyfit(xs, ys, 2)
+            p = np.poly1d(z)
+
+            yhat = p(xs)                         # or [p(z) for z in x]
+            ybar = np.sum(ys)/len(ys)          # or sum(y)/len(y)
+            ssreg = np.sum((yhat-ybar)**2)   # or sum([ (yihat - ybar)**2 for yihat in yhat])
+            sstot = np.sum((np.array(ys) - ybar)**2)    # or sum([ (yi - ybar)**2 for yi in y])
+            r2 = ssreg / sstot
+
+            fit_eq = f"$R^2={r2:.3f}$: ${z[0]:.2f}x^2 + {z[1]:.2f}x + c$"
+
+            l = ax.plot(xs, ys, label=item["label"] + f" ({fit_eq})", marker="o", linestyle='None')
+
+            fx = np.linspace(min(xs), max(xs), 100)
+            ax.plot(fx, p(fx), linestyle='--', alpha=0.5, color=l[0].get_color())
+
+        # Put a legend to the right of the current axis
+        box = ax.get_position()
+        ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+
+        return fig, ax
+
+    for fn in by_fn:
+        name = fn.replace("test_", "").replace("_", " ").title()
+
+        fig, ax = plot_series_data(fn, "x=m")
+        ax.set_xlabel(r"Edge scale factor ($m = x \cdot n$)")
+        ax.set_ylabel("Number of times edges change status")
         ax.set_xscale("log", base=2)
         ax.set_yscale("log", base=2)
-        ax.set_title(f"Number of status changes for different graph sizes ({name})")
+        ax.xaxis.set_major_formatter(mticker.StrMethodFormatter("{x:.0f}"))
+        ax.set_title(f"Number of status changes for different graph sizes ({name})", loc="left")
+        ax.grid(True)
         save_plot(f"graph_size_xm_{fn}")
 
-        fig, ax = plt.subplots(layout="constrained")
-        for id, item in plots["x=n"].items():
-            xs, ys = zip(*item["line"])
-            ax.plot(xs, ys, label=item["label"], marker="o")
-
-        ax.legend()
+        fig, ax = plot_series_data(fn, "x=n")
         ax.set_xlabel(r"$n$")
-        ax.set_ylabel("adm + inadm")
+        ax.set_ylabel("Number of times edges change status")
         ax.set_xscale("log", base=2)
         ax.set_yscale("log", base=2)
-        ax.set_title(f"Number of status changes for different graph sizes ({name})")
+        ax.xaxis.set_major_formatter(mticker.StrMethodFormatter("{x:.0f}"))
+        ax.set_title(f"Number of status changes for different graph sizes ({name})", loc="left")
+        ax.grid(True)
         save_plot(f"graph_size_xn_{fn}")
 
-        plt.show()
+        # plt.show()
 
     # fig, ax = plt.subplots(layout="constrained")
     # for m in ms:
