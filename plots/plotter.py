@@ -25,7 +25,7 @@ def make_out_path(name: str, format: str):
 
 
 def save_plot(name: str):
-    format = "png"
+    format = "pdf"
 
     if not (work_dir / "output").exists():
         (work_dir / "output").mkdir()
@@ -79,23 +79,29 @@ def weight_function_to_color(function_name: str) -> str:
 
 def cmp_weight_functions(data: ProcessedRunList):
     metrics: list[tuple[str, str | None]] = [
-        ("avg_updates", None),
-        ("average_w_length", None),
-        ("duration_s", "instance.n"),
-        ("marked_admissible", "instance.m"),
-        ("marked_dead", "instance.n"),
-        ("marked_inadmissible", "instance.m"),
-        ("before_kill.marked_admissible", "instance.m"),
-        ("before_kill.marked_inadmissible", "instance.m"),
-        ("state_change.marked_admissible", "instance.m"),
-        ("state_change.marked_inadmissible", "instance.m"),
-        ("state_change.state_changes", "instance.m"),
-        ("before_kill.relabels", "instance.n"),
-        ("relabels", "instance.n"),
-        ("iterations", "instance.n"),
-        ("edge_updates", "instance.m"),
-        ("highest_level", "instance.n"),
+        # ("avg_updates", None),
+        # ("average_w_length", None),
+        # ("duration_s", "instance.n"),
+        # ("marked_admissible", "instance.m"),
+        # ("marked_dead", "instance.n"),
+        # ("marked_inadmissible", "instance.m"),
+        # ("before_kill.marked_admissible", "instance.m"),
+        # ("before_kill.marked_inadmissible", "instance.m"),
+        # ("state_change.marked_admissible", "instance.m"),
+        # ("state_change.marked_inadmissible", "instance.m"),
+        ("state_change.state_changes", None),
+        # ("before_kill.relabels", "instance.n"),
+        # ("relabels", "instance.n"),
+        # ("iterations", "instance.n"),
+        # ("edge_updates", "instance.m"),
+        # ("highest_level", "instance.n"),
     ]
+
+    def pretty_metric_name(name: str) -> str:
+        if metric == "state_change.state_changes":
+            return "Admissibility changes per edge"
+        return name
+
     for metric, normalization_parameter in metrics:
         prefixed_metric = f"blik.{metric}"
 
@@ -126,7 +132,7 @@ def cmp_weight_functions(data: ProcessedRunList):
             for id in by_param_id.keys():
                 thing = by_param_id[id][-1]
                 x_axis.append(
-                    f"{thing['instance.n']} {thing['instance.m']} {thing['instance.h']}"
+                    f"n={thing['instance.n']}\nm={thing['instance.m']}"
                 )
 
             x = np.arange(len(x_axis))
@@ -159,12 +165,12 @@ def cmp_weight_functions(data: ProcessedRunList):
                 # ax.bar_label(rects, padding=3)
                 multiplier += 1
 
-            title = f"{metric} for {class_name}"
-            if normalization_parameter is not None:
-                title += f" normalized by {normalization_parameter}"
+            title = f"{pretty_metric_name(metric)} for {class_name}"
+            # if normalization_parameter is not None:
+            #     title += f" normalized by {normalization_parameter}"
             ax.set_title(title)
-            ax.set_ylabel(metric)
-            ax.set_xticks(x + width, x_axis, rotation=90)
+            ax.set_ylabel(pretty_metric_name(metric))
+            ax.set_xticks(x + width, x_axis)
             ax.legend()
             save_plot(f"cmp_{metric}_{class_name}")
 
@@ -333,7 +339,7 @@ def cmp_weight_functions_avg(data: ProcessedRunList, sizes: list[tuple[int, int]
     metrics: list[tuple[str, str | None]] = [
         # ("avg_updates", None),
         # ("average_w_length", None),
-        ("duration_s", "instance.n"),
+        # ("duration_s", "instance.n"),
         # ("marked_admissible", "instance.m"),
         # ("marked_dead", "instance.n"),
         ("edge_considerations", "instance.m"),
@@ -341,13 +347,39 @@ def cmp_weight_functions_avg(data: ProcessedRunList, sizes: list[tuple[int, int]
         # ("before_kill.marked_inadmissible", "instance.m"),
         # ("state_change.marked_admissible", "instance.m"),
         # ("state_change.marked_inadmissible", "instance.m"),
-        ("state_change.state_changes", "instance.m"),
+        # ("state_change.state_changes", None),
         # ("before_kill.relabels", "instance.n"),
-        ("relabels", "instance.n"),
+        # ("relabels", "instance.n"),
         # ("iterations", "instance.n"),
         # ("edge_updates", "instance.m"),
         # ("highest_level", "instance.n"),
     ]
+
+    def pretty_metric_name(metric: str) -> str:
+        if metric == "state_change.state_changes":
+            return "Admissibility changes per edge"
+        if metric == "edge_considerations":
+            return "Avg. edge considerations"
+        return metric
+
+    def ylabel(metric: str) -> str:
+        if metric == "state_change.state_changes":
+            return "Admissibility changes per edge ([#changes]/$m$)"
+        if metric == "edge_considerations":
+            return f"{pretty_metric_name(metric)} ([#considerations]/$m$)"
+        return metric
+
+    def pretty_class_name(c: str) -> str:
+        if c == "TestRandomCInputs":
+            return "random graphs"
+        if c == "TestRandomCDagInputsDAG":
+            return "random DAGs"
+        if c == "TestRandomFullyConnectedSameCapInputs":
+            return "complete graphs"
+        if c == "TestVaryingExpanderHierarchyInputs":
+            return "expander hierarchies"
+        return c
+
     for metric, normalization_parameter in metrics:
         prefixed_metric = f"blik.{metric}"
 
@@ -383,17 +415,15 @@ def cmp_weight_functions_avg(data: ProcessedRunList, sizes: list[tuple[int, int]
                 if type(sizes[0]) == int:
                     if n not in sizes:
                         continue
-
                     m = average_by(n_runs, "instance.m")
-                    x_axis.append(f"{n} {m:.0f}")
+                    x_axis.append(f"$n={n}$\n$m={m:.0f}$")
                     do(n_runs)
-
                 else:
                     for m, m_runs in group_by(n_runs, "instance.m").items():
                         if (n, m) not in sizes:
                             continue
 
-                        x_axis.append(f"{n} {m}")
+                        x_axis.append(f"$n={n}$\n$m={m:.0f}$")
                         do(m_runs)
 
             x = np.arange(len(x_axis))
@@ -408,13 +438,20 @@ def cmp_weight_functions_avg(data: ProcessedRunList, sizes: list[tuple[int, int]
 
                 real_name = function_name.replace("test_", "")
                 if real_name == "weighted_push_relabel":
-                    real_name = "No weights"
+                    real_name = "Unit weights"
                 else:
-                    real_name = (
-                        real_name.replace("weighted_push_relabel_", "")
-                        .replace("_", " ")
-                        .title()
-                    )
+                    nn = real_name.replace("weighted_push_relabel_", "")
+                    if nn == "with_flow_weight":
+                        real_name = "Maximum flow weights"
+                    elif nn == "with_expander_hierarchy_weights":
+                        real_name = "Expander hierarchy weights"
+                    elif nn == "with_topsort":
+                        real_name = "Topological order weights"
+                    elif nn == "with_n_weight":
+                        real_name = "Weight $n$"
+                    else:
+                        real_name = nn
+                    print(nn.__repr__(), real_name)
 
                 rects = ax.bar(
                     x + offset,
@@ -426,12 +463,12 @@ def cmp_weight_functions_avg(data: ProcessedRunList, sizes: list[tuple[int, int]
                 # ax.bar_label(rects, padding=3)
                 multiplier += 1
 
-            title = f"{metric} for {class_name}"
-            if normalization_parameter is not None:
-                title += f" normalized by {normalization_parameter}"
+            title = f"{pretty_metric_name(metric)} for {pretty_class_name(class_name)}"
+            # if normalization_parameter is not None:
+            #     title += f" normalized by {normalization_parameter}"
             ax.set_title(title)
-            ax.set_ylabel(metric)
-            ax.set_xticks(x + width, x_axis, rotation=90)
+            ax.set_ylabel(ylabel(metric))
+            ax.set_xticks(x + width, x_axis)
             ax.legend()
             save_plot(f"cmp_{metric}_{class_name}")
 
@@ -470,7 +507,7 @@ if __name__ == "__main__":
             ],
         ),
         (
-            "benches/non-dag-runs-18-may-13:08.json",
+            "benches/non-dag-runs-18-may-13_08.json",
             [
                 (256, 256),
                 (256, 512),
@@ -479,7 +516,7 @@ if __name__ == "__main__":
             ],
         ),
         (
-            "benches/dag-runs-18-may-12:57.json",
+            "benches/dag-runs-18-may-12_57.json",
             [
                 (256, 256),
                 (256, 512),
