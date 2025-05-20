@@ -1,110 +1,116 @@
-from collections import defaultdict
-
+from collections import deque, defaultdict
+from dataclasses import dataclass, field
+from src.utils import Edge, Vertex, Graph
 from src import benchmark
-from src.utils import Graph
 
-# all credit to Riko Jacob for this code
-
-
-def find_max_flow(G: Graph, s: int, t: int) -> tuple[int, list[tuple[int, int, int]]]:
-    graph: defaultdict[int, defaultdict[int, int]] = defaultdict(
-        lambda: defaultdict(lambda: 0)
-    )
-
-    edges, capacities = G.E, G.c
-
-    for (u, v), capacity in zip(edges, capacities):
-        graph[u][v] = capacity
-
-    max_flow, flow_graph, _ = flow(graph, s, t)
-
-    flow_edges: list[tuple[int, int, int]] = []
-    for u, d in flow_graph.items():
-        for v, c in d.items():
-            flow_edges.append((u, v, c))
-
-    benchmark.register("capacity.flow", max_flow)
-
-    return max_flow, flow_edges
+INF = 1000000000
 
 
-def bfs(
-    graph: defaultdict[int, defaultdict[int, int]], src: int, dest: int, mincap: int = 0
-) -> tuple[bool, set[int] | list[tuple[int, int]]]:
-    parent = {src: src}
-    layer = [src]
-    while layer:
-        nextlayer: list[int] = []
-        for u in layer:
-            for v, cap in graph[u].items():
-                if cap > mincap and v not in parent:
-                    parent[v] = u
-                    nextlayer.append(v)
-                    if v == dest:
-                        p: list[tuple[int, int]] = []
-                        current_vertex = dest
-                        while src != current_vertex:
-                            p.append((parent[current_vertex], current_vertex))
-                            current_vertex = parent[current_vertex]
-                        return (True, p)
-        layer = nextlayer
-    return (False, set(parent))
+@dataclass
+class CapacityScaling:
+    g: Graph
+    s: Vertex
+    t: Vertex
 
+    flow: defaultdict[Edge, int] = field(default_factory=defaultdict)
 
-def flow(
-    orggraph: defaultdict[int, defaultdict[int, int]], src: int, dest: int
-) -> tuple[int, defaultdict[int, defaultdict[int, int]], set[int]]:
-    graph: defaultdict[int, defaultdict[int, int]] = defaultdict(
-        lambda: defaultdict(int)
-    )
-    maxcapacity = 0
-    for u, d in orggraph.items():
-        for v, c in d.items():
-            graph[u][v] = c
-            maxcapacity = max(maxcapacity, c)
+    def __init__(self, G: Graph):
+        self.g = G
 
-    current_flow = 0
-    mincap = maxcapacity
-    while True:
-        ispath, p_or_seen = bfs(graph, src, dest, mincap)
-        if not ispath:
-            if mincap > 0:
-                mincap = mincap // 2
-                continue
-            else:
-                updates = benchmark.get_or_default("capacity.edge_updates", 0)
-                iters = benchmark.get_or_default("capacity.iterations", 1)
-                if iters is not None and updates is not None:
-                    benchmark.register("capacity.avg_updates", updates / iters)
+    def c_f(self, edge: Edge) -> int:
+        if edge.forward:
+            return edge.c - self.flow[edge]
+        else:
+            return self.flow[edge.reversed()]
 
-                return (
-                    current_flow,
-                    {
-                        a: {b: c - graph[a][b] for b, c in d.items() if graph[a][b] < c}
-                        for a, d in orggraph.items()
-                    },
-                    p_or_seen,
+    def bfs(self, delta: int) -> tuple[int, dict[Vertex, Edge] | None]:
+        parent: dict[Vertex, Edge] = {}
+
+        q: deque[tuple[Vertex, int]] = deque()
+        q.append((self.s, INF))
+
+        visited = {self.s}
+
+        while q:
+            u, flow = q.popleft()
+
+            for edge in self.g.outgoing[u]:
+                v = edge.v
+
+                if v in visited:
+                    continue
+
+                cap = self.c_f(edge)
+
+                if cap >= delta:
+                    visited.add(v)
+                    parent[v] = edge
+                    new_flow = min(flow, cap)
+                    if v == self.t:
+                        return new_flow, parent
+                    q.append((v, new_flow))
+
+        return 0, None
+
+    def max_flow(self, s: Vertex, t: Vertex) -> int:
+        self.s = s
+        self.t = t
+
+        self.flow = defaultdict(int)
+
+        flow = 0
+
+        max_capacity: int = max(self.g.c)
+        delta = 1
+        while delta * 2 <= max_capacity:
+            delta *= 2
+
+        while delta >= 1:
+            while True:
+                benchmark.register_or_update("capacity.iterations", 1, lambda x: x + 1)
+
+                new_flow, parent = self.bfs(delta)
+
+                if new_flow == 0 or parent is None:
+                    break
+
+                flow += new_flow
+
+                cur = self.t
+                path_length = 0
+                while cur != self.s:
+                    path_length += 1
+                    edge = parent[cur]
+                    cur = edge.u
+
+                    if edge.forward:
+                        self.flow[edge] = self.flow[edge] + new_flow
+                    else:
+                        edge = edge.reversed()
+                        self.flow[edge] = self.flow[edge] - new_flow
+                benchmark.register_or_update(
+                    "capacity.edge_updates", path_length, lambda x: x + path_length
                 )
-        p: list[tuple[int, int]] = p_or_seen
-        saturation = min(graph[u][v] for u, v in p)
-        current_flow += saturation
-        edge_updates = 0
-        for u, v in p:
-            edge_updates += 2
-            graph[u][v] -= saturation
-            graph[v][u] += saturation
+                benchmark.register_or_update(
+                    "capacity.max_edge_updates",
+                    path_length,
+                    lambda x: max(x, path_length),
+                )
+                benchmark.register_or_update(
+                    "capacity.min_edge_updates",
+                    path_length,
+                    lambda x: min(x, path_length),
+                )
 
-        benchmark.register_or_update(
-            "capacity.edge_updates", edge_updates, lambda x: x + edge_updates
-        )
-        benchmark.register_or_update(
-            "capacity.max_edge_updates",
-            edge_updates,
-            lambda x: edge_updates if edge_updates > x else x,
-        )
-        benchmark.register_or_update(
-            "capacity.min_edge_updates",
-            edge_updates,
-            lambda x: edge_updates if edge_updates < x else x,
-        )
-        benchmark.register_or_update("capacity.iterations", 1, lambda x: x + 1)
+            delta //= 2
+
+        benchmark.register("capacity.flow", flow)
+
+        return flow
+
+
+def finish_benchmark():
+    updates = benchmark.get_or_default("capacity.edge_updates", 0)
+    iters = benchmark.get_or_default("capacity.iterations", 1)
+    if iters is not None and updates is not None:
+        benchmark.register("capacity.avg_updates", updates / iters)
