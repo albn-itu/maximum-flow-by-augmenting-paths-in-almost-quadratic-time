@@ -1,41 +1,33 @@
-from collections import defaultdict
-from src import benchmark
-from src.utils import Graph
+from collections import deque
+from dataclasses import dataclass, field
 
+from src import benchmark
+from src.utils import Edge, Graph, Vertex
 
 INF = 1000000000
 
 
+@dataclass
 class PushRelabel:
+    g: Graph
     n: int
-    capacities: defaultdict[int, defaultdict[int, int]]
-    flow: defaultdict[int, defaultdict[int, int]]
+    s: Vertex
+    t: Vertex
 
-    height: list[int]
-    excess: list[int]
+    height: dict[Vertex, int] = field(default_factory=dict)
+    excess: dict[Vertex, int] = field(default_factory=dict)
 
-    edge_updates: int
+    flow: dict[Edge, int] = field(default_factory=dict)
+
+    edge_updates: int = 0
+
+    active_node_queue: deque[Vertex] = field(default_factory=deque)
+    is_active: dict[Vertex, bool] = field(default_factory=dict)
 
     def __init__(self, G: Graph):
         """Initialize push-relabel algorithm with n vertices."""
-        edges, capacities = G.E, G.c
-
-        self.capacities = defaultdict(lambda: defaultdict(lambda: 0))
-        self.flow = defaultdict(lambda: defaultdict(lambda: 0))
-
-        vs: set[int] = set()
-        for (u, v), cap in zip(edges, capacities):
-            vs.add(u)
-            vs.add(v)
-
-            self.capacities[u][v] = cap
-
-        self.n = max(vs) + 1
-
-        self.height = [0] * self.n
-        self.excess = [0] * self.n
-
-        self.edge_updates = 0
+        self.g = G
+        self.n = len(G.V)
 
     def new_iteration(self):
         """Reset edge update counter."""
@@ -56,28 +48,41 @@ class PushRelabel:
         benchmark.register_or_update("push_relabel.iterations", 1, lambda x: x + 1)
         self.edge_updates = 0
 
-    def add_edge(self, u: int, v: int, cap: int) -> None:
-        """Add an edge from u to v with capacity cap."""
-        self.capacities[u][v] = cap
+    def c_f(self, edge: Edge) -> int:
+        if edge.forward:
+            return edge.c - self.flow.get(edge, 0)
+        else:
+            return self.flow.get(edge.reversed(), 0)
 
-    def push(self, u: int, v: int) -> None:
-        """Push excess flow from vertex u to v."""
-        d = min(self.excess[u], self.capacities[u][v] - self.flow[u][v])
-        self.flow[u][v] += d
-        self.flow[v][u] -= d
-        self.excess[u] -= d
-        self.excess[v] += d
+    def push(self, edge: Edge, to_push: int | None = None) -> None:
+        u, v = edge.u, edge.v
+        if to_push is None:
+            to_push = min(self.excess[u], self.c_f(edge))
+
+        if edge.forward:
+            self.flow[edge] = self.flow.get(edge, 0) + to_push
+        else:
+            edge = edge.reversed()
+            self.flow[edge] = self.flow.get(edge, 0) - to_push
+
+        self.excess[u] -= to_push
+        self.excess[v] += to_push
 
         self.edge_updates += 2
+
+        if v != self.s and v != self.t and self.excess[v] > 0 and not self.is_active[v]:
+            self.active_node_queue.append(v)
+            self.is_active[v] = True
 
     def relabel(self, u: int) -> None:
         """Relabel vertex u by increasing its height."""
         benchmark.register_or_update("push_relabel.relabels", 1, lambda x: x + 1)
 
         d = INF
-        for i in range(self.n):
-            if self.capacities[u][i] - self.flow[u][i] > 0:
-                d = min(d, self.height[i])
+        for edge in self.g.outgoing[u]:
+            if self.c_f(edge) > 0:
+                d = min(d, self.height[edge.v])
+
         if d < INF:
             self.height[u] = d + 1
 
@@ -85,56 +90,64 @@ class PushRelabel:
                 "push_relabel.highest_level", d + 1, lambda x: max(x, d + 1)
             )
 
-    def find_max_height_vertices(self, s: int, t: int) -> list[int]:
-        """Find vertices with maximum height and positive excess flow."""
-        max_height: list[int] = []
-        for i in range(self.n):
-            if i != s and i != t and self.excess[i] > 0:
-                if max_height and self.height[i] > self.height[max_height[0]]:
-                    max_height.clear()
-                if not max_height or self.height[i] == self.height[max_height[0]]:
-                    max_height.append(i)
-        return max_height
+    def discharge(self, u: int):
+        while self.excess[u] > 0:
+            pushed = False
+
+            for edge in self.g.outgoing[u]:
+                if self.c_f(edge) > 0 and self.height[u] == self.height[edge.v] + 1:
+                    self.push(edge)
+                    pushed = True
+                    if self.excess[u] == 0:
+                        return
+
+            if not pushed:
+                self.relabel(u)
 
     def max_flow(self, s: int, t: int) -> int:
-        """
-        Calculate maximum flow from source s to sink t using push-relabel algorithm.
-        Returns the maximum flow value.
-        """
-        # Initialize height, flow, and excess arrays
-        self.height[s] = self.n
-        self.excess[s] = INF
+        # == Init ==
+        self.s = s
+        self.t = t
 
+        self.height = {u: 0 for u in self.g.V}
+        self.height[s] = self.n
+
+        self.active_node_queue = deque()
+        self.is_active = {u: False for u in self.g.V}
+
+        self.excess = {u: 0 for u in self.g.V}
+
+        # Set all flow to 0
+        self.flow = {}
+        for edge in self.g.all_edges():
+            if edge.forward:
+                self.flow[edge] = 0
         # Initial push from source
-        for i in range(self.n):
-            if i != s:
-                self.push(s, i)
+        for edge in self.g.outgoing[s]:
+            if not edge.forward:
+                continue
+
+            to_push = edge.c
+            self.push(edge, to_push)
+
+        self.edge_updates = 0
+
+        for u in self.g.V:
+            if u != s and u != t and self.excess[u] > 0 and not self.is_active[u]:
+                self.active_node_queue.append(u)
+                self.is_active[u] = True
 
         first = True
         # Main loop
-        while True:
+        while self.active_node_queue:
             if not first:
                 self.new_iteration()
             first = False
 
-            current = self.find_max_height_vertices(s, t)
-            if not current:
-                break
+            u = self.active_node_queue.popleft()
+            self.is_active[u] = False
 
-            for i in current:
-                pushed = False
-                for j in range(self.n):
-                    if (
-                        self.excess[i]
-                        and self.capacities[i][j] - self.flow[i][j] > 0
-                        and self.height[i] == self.height[j] + 1
-                    ):
-                        self.push(i, j)
-                        pushed = True
-
-                if not pushed:
-                    self.relabel(i)
-                    break
+            self.discharge(u)
 
         total_updates = benchmark.get_or_default("push_relabel.edge_updates", 0)
         iters = benchmark.get_or_default("push_relabel.iterations", 1)

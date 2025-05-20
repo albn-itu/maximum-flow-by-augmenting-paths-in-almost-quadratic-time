@@ -3,8 +3,6 @@ from dataclasses import dataclass, field
 import random
 from typing import override
 
-from networkx import graph
-
 type Vertex = int
 
 
