@@ -1,10 +1,8 @@
-from collections import defaultdict
 from typing import Callable
 from src import benchmark
 from src.utils import (
     Edge,
     Graph,
-    topological_sort,
     topological_sort_with_backwards_edges,
 )
 from src.classic_push_relabel import PushRelabel
@@ -56,7 +54,7 @@ def weight_function_from_flow(
             if u not in ordering_map and v not in ordering_map:
                 return default
 
-            if u in flow and v in flow[u] and flow[u][v] > 0:
+            if edge in flow and flow[edge] > 0:
                 return abs(ordering_map.get(u, default) - ordering_map.get(v, default))
 
             return default
@@ -67,16 +65,19 @@ def weight_function_from_flow(
 
 
 def topological_sort_induced_flow_dag(
-    flow: defaultdict[int, defaultdict[int, int]],
+    flow: dict[Edge, int],
 ) -> list[int]:
     """
     Create a new graph with only the edges that have flow in the original graph.
     """
 
-    vertices = list(set(flow.keys()).union(*flow.values()))
     edges: list[tuple[int, int]] = [
-        (u, v) for u in vertices for v in flow[u].keys() if flow[u][v] > 0
+        (edge.u, edge.v) for edge, flow in flow.items() if flow > 0
     ]
+    vertices: set[int] = set()
+    for edge in edges:
+        vertices.add(edge[0])
+        vertices.add(edge[1])
 
-    G = Graph(vertices, edges, [])
+    G = Graph(list(vertices), edges, [])
     return topological_sort_with_backwards_edges(G)[0]
