@@ -1,67 +1,88 @@
 # Based upon the C++ implementation from here https://cp-algorithms.com/graph/min_cost_flow.html
 from collections import defaultdict, deque
+from dataclasses import dataclass, field
 from src import benchmark
-from src.utils import Graph
+from src.utils import Edge, Graph, Vertex
+
+INF = 1000000000
 
 
+@dataclass
 class MaxFlow:
+    g: Graph
     n: int
-    capacities: defaultdict[int, defaultdict[int, int]]
-    adj: defaultdict[int, list[int]]
+    s: Vertex
+    t: Vertex
+
+    flow: dict[Edge, int] = field(default_factory=dict)
 
     def __init__(self, G: Graph):
-        self.capacities = defaultdict(lambda: defaultdict(lambda: 0))
+        self.g = G
+        self.n = len(G.V)
 
-        vs: set[int] = set()
-        for (u, v), cap in zip(G.E, G.c):
-            vs.add(u)
-            vs.add(v)
+    def c_f(self, edge: Edge) -> int:
+        if edge.forward:
+            return edge.c - self.flow.get(edge, 0)
+        else:
+            return self.flow.get(edge.reversed(), 0)
 
-            self.capacities[u][v] = cap
+    def bfs(self) -> tuple[int, dict[Vertex, Edge] | None]:
+        parent = dict[Vertex, Edge]()
 
-        self.n = max(vs) + 1
+        q = deque[tuple[Vertex, int]]()
+        q.append((self.s, INF))
 
-        self.adj = defaultdict(list)
-        for u, v in G.E:
-            self.adj[u].append(v)
-            self.adj[v].append(u)
-
-    def bfs(self, s: int, t: int, parent: list[int]) -> int:
-        INF = float("inf")
-        parent[:] = [-1] * len(parent)
-        parent[s] = -2
-
-        q = deque([(s, INF)])
+        visited = {self.s}
 
         while q:
-            cur, flow = q.popleft()
-            for next_node in self.adj[cur]:
-                if parent[next_node] == -1 and self.capacities[cur][next_node]:
-                    parent[next_node] = cur
-                    new_flow = min(flow, self.capacities[cur][next_node])
-                    if next_node == t:
-                        return int(new_flow)
-                    q.append((next_node, new_flow))
-        return 0
+            u, flow = q.popleft()
+
+            for edge in self.g.outgoing[u]:
+                v = edge.v
+
+                if v in visited:
+                    continue
+
+                cap = self.c_f(edge)
+                if cap > 0:
+                    visited.add(v)
+                    parent[v] = edge
+                    new_flow = min(flow, cap)
+                    if v == self.t:
+                        return new_flow, parent
+                    q.append((v, new_flow))
+
+        return 0, None
 
     def maxflow_bfs(self, s: int, t: int) -> int:
+        self.s = s
+        self.t = t
+
+        self.flow = {}
+        for edge in self.g.all_edges():
+            self.flow[edge] = 0
+
         flow = 0
-        parent = [-1] * self.n
 
         while True:
-            new_flow = self.bfs(s, t, parent)
-            if not new_flow:
+            new_flow, parent = self.bfs()
+
+            if new_flow == 0 or parent is None:
                 break
 
             flow += new_flow
-            cur = t
 
+            cur = t
             edge_updates = 0
-            while cur != s:
-                prev = parent[cur]
-                self.capacities[prev][cur] -= new_flow
-                self.capacities[cur][prev] += new_flow
-                cur = prev
+            while cur != self.s:
+                edge = parent[cur]
+                cur = edge.u
+
+                if edge.forward:
+                    self.flow[edge] = self.flow.get(edge, 0) + new_flow
+                else:
+                    edge = edge.reversed()
+                    self.flow[edge] = self.flow.get(edge, 0) - new_flow
 
                 edge_updates += 2
 

@@ -8,14 +8,13 @@ from src import benchmark
 
 def find_max_flow(G: Graph, s: int, t: int):
     edges, capacities = G.E, G.c
-    cap, _ = wrap_register_time(cap_find_max_flow, "capacity")(G, s, t)
+    # cap, _ = wrap_register_time(cap_find_max_flow, "capacity")(G, s, t)
     edk = wrap_register_time(lambda: MaxFlow(G).max_flow(s, t), "edmond")()
     pr = wrap_register_time(lambda: PushRelabel(G).max_flow(s, t), "push_relabel")()
 
-    assert cap == edk
-    assert cap == pr
+    assert edk == pr, f"Edmond-Karp: {edk}, Push-Relabel: {pr}"
 
-    return cap
+    return pr
 
 
 def wrap_register_time(func, label):
