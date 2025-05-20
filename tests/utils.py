@@ -4,11 +4,11 @@ import pytest
 from src import benchmark
 from src.utils import Edge, Graph, parse_input, topological_sort
 from typing import Callable, ParamSpec, TypeVar
-from tests.flows.utils import (
+from tests.flows import (
     make_test_flow_input,
     weight_function_from_flow,
 )
-from tests.flows import find_max_flow as find_max_flow_correct
+from src.flows import find_max_flow as find_max_flow_correct
 from functools import wraps
 
 Param = ParamSpec("Param")

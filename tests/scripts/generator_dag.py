@@ -3,7 +3,7 @@ import pathlib
 from dataclasses import dataclass
 import sys
 
-from src.classic_push_relabel import PushRelabel
+from src.flows.classic_push_relabel import PushRelabel
 from src.utils import Graph, export_russian_graph
 
 

@@ -5,7 +5,7 @@ from src.utils import (
     Graph,
     topological_sort_with_backwards_edges,
 )
-from src.classic_push_relabel import PushRelabel
+from src.flows.classic_push_relabel import PushRelabel
 
 
 def get_source_and_sink(sources: list[int], sinks: list[int]) -> tuple[int, int]:

@@ -1,7 +1,8 @@
 from collections import deque, defaultdict
 from dataclasses import dataclass, field
+
+from src.flows.utils import finish_benchmark, benchmark_iteration
 from src.utils import Edge, Vertex, Graph
-from src import benchmark
 
 INF = 1000000000
 
@@ -67,8 +68,6 @@ class CapacityScaling:
 
         while delta >= 1:
             while True:
-                benchmark.register_or_update("capacity.iterations", 1, lambda x: x + 1)
-
                 new_flow, parent = self.bfs(delta)
 
                 if new_flow == 0 or parent is None:
@@ -77,9 +76,8 @@ class CapacityScaling:
                 flow += new_flow
 
                 cur = self.t
-                path_length = 0
+                edge_updates = 0
                 while cur != self.s:
-                    path_length += 1
                     edge = parent[cur]
                     cur = edge.u
 
@@ -88,29 +86,11 @@ class CapacityScaling:
                     else:
                         edge = edge.reversed()
                         self.flow[edge] = self.flow[edge] - new_flow
-                benchmark.register_or_update(
-                    "capacity.edge_updates", path_length, lambda x: x + path_length
-                )
-                benchmark.register_or_update(
-                    "capacity.max_edge_updates",
-                    path_length,
-                    lambda x: max(x, path_length),
-                )
-                benchmark.register_or_update(
-                    "capacity.min_edge_updates",
-                    path_length,
-                    lambda x: min(x, path_length),
-                )
 
+                    edge_updates += 2
+                benchmark_iteration("capacity", edge_updates)
             delta //= 2
 
-        benchmark.register("capacity.flow", flow)
+        finish_benchmark("capacity", flow)
 
         return flow
-
-
-def finish_benchmark():
-    updates = benchmark.get_or_default("capacity.edge_updates", 0)
-    iters = benchmark.get_or_default("capacity.iterations", 1)
-    if iters is not None and updates is not None:
-        benchmark.register("capacity.avg_updates", updates / iters)

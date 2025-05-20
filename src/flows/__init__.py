@@ -3,7 +3,7 @@ from collections.abc import Callable
 from src.utils import Graph
 from .capacity_scaling import CapacityScaling
 from .edmond_karp import MaxFlow
-from src.classic_push_relabel import PushRelabel
+from .classic_push_relabel import PushRelabel
 import time
 from src import benchmark
 

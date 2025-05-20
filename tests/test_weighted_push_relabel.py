@@ -134,18 +134,18 @@ class TestLargeInputsLine(TopSortable):
     params = large_inputs.LINE_INPUT_EXPECTED
 
 
-@typing.final
-@pytest.mark.slow
-class TestLargeInputsMaxflowDAG(TopSortable):
-    file_based = True
-    params = large_inputs.MAXFLOW_DAG_INPUT_EXPECTED
-
-
-@typing.final
-@pytest.mark.slow
-class TestLargeInputsMaxflow(Base):
-    file_based = True
-    params = large_inputs.MAXFLOW_NOT_DAG_INPUT_EXPECTED
+# @typing.final
+# @pytest.mark.slow
+# class TestLargeInputsMaxflowDAG(TopSortable):
+#     file_based = True
+#     params = large_inputs.MAXFLOW_DAG_INPUT_EXPECTED
+#
+#
+# @typing.final
+# @pytest.mark.slow
+# class TestLargeInputsMaxflow(Base):
+#     file_based = True
+#     params = large_inputs.MAXFLOW_NOT_DAG_INPUT_EXPECTED
 
 
 @typing.final

@@ -1,5 +1,7 @@
-from collections import deque
+from collections import defaultdict, deque
 from dataclasses import dataclass, field
+
+from flows.utils import benchmark_iteration, finish_benchmark
 
 from src import benchmark
 from src.utils import Edge, Graph, Vertex
@@ -17,42 +19,23 @@ class PushRelabel:
     height: dict[Vertex, int] = field(default_factory=dict)
     excess: dict[Vertex, int] = field(default_factory=dict)
 
-    flow: dict[Edge, int] = field(default_factory=dict)
-
-    edge_updates: int = 0
+    flow: defaultdict[Edge, int] = field(default_factory=defaultdict)
 
     active_node_queue: deque[Vertex] = field(default_factory=deque)
     is_active: dict[Vertex, bool] = field(default_factory=dict)
+
+    edge_updates: int = 0
 
     def __init__(self, G: Graph):
         """Initialize push-relabel algorithm with n vertices."""
         self.g = G
         self.n = len(G.V)
 
-    def new_iteration(self):
-        """Reset edge update counter."""
-        edge_updates = self.edge_updates
-        benchmark.register_or_update(
-            "push_relabel.edge_updates", edge_updates, lambda x: x + edge_updates
-        )
-        benchmark.register_or_update(
-            "push_relabel.max_edge_updates",
-            edge_updates,
-            lambda x: max(x, edge_updates),
-        )
-        benchmark.register_or_update(
-            "push_relabel.min_edge_updates",
-            edge_updates,
-            lambda x: min(x, edge_updates),
-        )
-        benchmark.register_or_update("push_relabel.iterations", 1, lambda x: x + 1)
-        self.edge_updates = 0
-
     def c_f(self, edge: Edge) -> int:
         if edge.forward:
-            return edge.c - self.flow.get(edge, 0)
+            return edge.c - self.flow[edge]
         else:
-            return self.flow.get(edge.reversed(), 0)
+            return self.flow[edge.reversed()]
 
     def push(self, edge: Edge, to_push: int | None = None) -> None:
         u, v = edge.u, edge.v
@@ -60,10 +43,10 @@ class PushRelabel:
             to_push = min(self.excess[u], self.c_f(edge))
 
         if edge.forward:
-            self.flow[edge] = self.flow.get(edge, 0) + to_push
+            self.flow[edge] = self.flow[edge] + to_push
         else:
             edge = edge.reversed()
-            self.flow[edge] = self.flow.get(edge, 0) - to_push
+            self.flow[edge] = self.flow[edge] - to_push
 
         self.excess[u] -= to_push
         self.excess[v] += to_push
@@ -84,10 +67,11 @@ class PushRelabel:
                 d = min(d, self.height[edge.v])
 
         if d < INF:
-            self.height[u] = d + 1
+            new_height = d + 1
+            self.height[u] = new_height
 
             benchmark.register_or_update(
-                "push_relabel.highest_level", d + 1, lambda x: max(x, d + 1)
+                "push_relabel.highest_level", new_height, lambda x: max(x, new_height)
             )
 
     def discharge(self, u: int):
@@ -117,12 +101,7 @@ class PushRelabel:
 
         self.excess = {u: 0 for u in self.g.V}
 
-        # Set all flow to 0
-        self.flow = {}
-        for edge in self.g.all_edges():
-            if edge.forward:
-                self.flow[edge] = 0
-        # Initial push from source
+        self.flow = defaultdict(int)
         for edge in self.g.outgoing[s]:
             if not edge.forward:
                 continue
@@ -130,29 +109,21 @@ class PushRelabel:
             to_push = edge.c
             self.push(edge, to_push)
 
-        self.edge_updates = 0
-
         for u in self.g.V:
             if u != s and u != t and self.excess[u] > 0 and not self.is_active[u]:
                 self.active_node_queue.append(u)
                 self.is_active[u] = True
 
-        first = True
-        # Main loop
         while self.active_node_queue:
-            if not first:
-                self.new_iteration()
-            first = False
-
             u = self.active_node_queue.popleft()
             self.is_active[u] = False
 
             self.discharge(u)
 
-        total_updates = benchmark.get_or_default("push_relabel.edge_updates", 0)
-        iters = benchmark.get_or_default("push_relabel.iterations", 1)
-        if iters is not None and total_updates is not None:
-            benchmark.register("push_relabel.avg_updates", total_updates / iters)
-        benchmark.register("push_relabel.flow", self.excess[t])
+            benchmark_iteration("push_relabel", self.edge_updates)
+            self.edge_updates = 0
 
-        return self.excess[t]
+        max_flow = self.excess[t]
+        finish_benchmark("push_relabel", max_flow)
+
+        return max_flow
