@@ -68,12 +68,12 @@ def run_test(
         def weight_fn(e):
             return 1
 
+    g, sources, sinks = parse_input(input, expected)
+
     benchmark.register_or_update("bench_config.top_sort", False, lambda x: x)
 
-    g, sources, sinks = parse_input(input, expected)
     h = h if h is not None else len(g.V)
     mf, _ = flow_fn(g, g.c, sources, sinks, weight_fn, h)
-    benchmark.register("bench_config.expected", expected)
     assert mf == expected, f"Expected {expected}, got {mf}"
 
 

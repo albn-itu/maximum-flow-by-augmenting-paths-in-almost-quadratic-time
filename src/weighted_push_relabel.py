@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 import time
 
 from src import benchmark
+from tests.utils import bench
 from .visualisation import (
     export_custom_visualisation,
     graphviz_frame,
@@ -38,6 +39,7 @@ class WeightedPushRelabel:
 
     def solve(self) -> tuple[int, dict[Edge, int]]:
         benchmark.set_bench_scope("blik")
+        benchmark.register("instance.h", self.h)
 
         self.f = defaultdict(int)
         self.l = {v: 0 for v in self.G.V}
@@ -45,30 +47,19 @@ class WeightedPushRelabel:
         self.admissible_outgoing = defaultdict(set)
         self.alive_vertices_with_no_admissible_out_edges = set(self.G.V)
 
-        benchmark.register(
-            "instance",
-            {
-                "m": len(self.G.E),
-                "n": len(self.G.V),
-                "h": self.h,
-            },
-        )
-
-        all_edges: set[Edge] = set(
-            e for edges in self.G.outgoing.values() for e in edges
-        )
         # Shorthands
-        w = {e: self.w(e.forward_edge()) for e in all_edges}
+        w = {
+            e: self.w(e.forward_edge()) for e in self.G._all_edges()
+        }  # NOTE: Not included in benchmark
         h = self.h
         f, l, c_f = self.f, self.l, self.c_f
 
         self.unique_weights = {
-            v: sorted(set(w[e] for e in self.G.incident[v])) for v in self.G.V
-        }
+            v: sorted(set(w[e] for e in self.G.incident.inner[v].inner))
+            for v in self.G.V
+        }  # NOTE: Not included in benchmark
 
         def relabel(v: Vertex):
-            edges = self.G.incident[v]
-
             l[v] = min(
                 (
                     next_multiple_of(n=l[v], multiple_of=weight)
@@ -85,7 +76,15 @@ class WeightedPushRelabel:
                 self.mark_dead(v)
                 return
 
-            for e in (e for e in edges if l[v] % w[e] == 0):
+            benchmark.set_bench_scope("blik.relabel")
+            edges = self.G.incident[v]  # NOTE: Gets looped
+            benchmark.set_bench_scope("blik")
+
+            for e in (e for e in edges.inner if l[v] % w[e] == 0):
+                benchmark.register_or_update_s(
+                    "relabel.edge_set.next", 1, lambda x: x + 1
+                )
+
                 x, y = e.start(), e.end()
                 if l[x] - l[y] >= 2 * w[e] and c_f(e) > 0:
                     self.mark_admissible(e)
@@ -107,7 +106,9 @@ class WeightedPushRelabel:
             write_custom_frame_into(self, vis, label="After relabel")
 
             if (s := self.find_alive_vertex_with_excess()) is not None:
-                P = self.trace_path(s)
+                P = self.trace_path(
+                    s
+                )  # NOTE: P gets looped but doesn't count in the benchmark
                 assert P is not None, "Path not found, but we always expect one."
 
                 graphviz_frame(self, "Traced path", aug_path=set(P))
@@ -236,8 +237,10 @@ class WeightedPushRelabel:
 
     # This is exactly B^TG(v) from the paper - or alternatively "-f^out(v)".
     def net_flow(self, v: Vertex) -> int:
-        recv = sum(self.f.get(e, 0) for e in self.G.incoming[v])
-        send = sum(self.f.get(e, 0) for e in self.G.outgoing[v])
+        benchmark.set_bench_scope("blik.net_flow")
+        recv = sum(self.f.get(e, 0) for e in self.G.incoming[v])  # NOTE: Loops edges
+        send = sum(self.f.get(e, 0) for e in self.G.outgoing[v])  # NOTE: Loops edges
+        benchmark.set_bench_scope("blik")
         return recv - send
 
     def residual_source(self, v: Vertex) -> int:

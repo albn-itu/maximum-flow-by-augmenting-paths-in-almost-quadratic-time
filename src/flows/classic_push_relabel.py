@@ -107,8 +107,7 @@ class PushRelabel:
             if not edge.forward:
                 continue
 
-            to_push = edge.c
-            self.push(edge, to_push)
+            self.push(edge, edge.c)
 
         for u in self.g.V:
             if u != s and u != t and self.excess[u] > 0 and not self.is_active[u]:

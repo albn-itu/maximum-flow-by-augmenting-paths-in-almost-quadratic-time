@@ -1,10 +1,11 @@
 import os
+from src import benchmark
 from networkx import is_directed_acyclic_graph, MultiDiGraph
 
 
 def parse_input(input: str) -> list[tuple[int, int]]:
     lines = input.strip().split("\n")
-    n, _, s, t = map(int, lines[0].split())
+    _, _, _, _ = map(int, lines[0].split())
 
     edges: list[tuple[int, int]] = []
 

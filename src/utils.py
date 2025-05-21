@@ -1,7 +1,9 @@
 from collections import defaultdict
 from dataclasses import dataclass, field
 import random
-from typing import override
+from typing import Self, override
+
+from src import benchmark
 
 type Vertex = int
 
@@ -40,15 +42,71 @@ class Edge:
 
 
 @dataclass
+class EdgeSet:
+    inner: set[Edge] = field(default_factory=set)
+
+    def add(self, edge: Edge):
+        benchmark.register_or_update_s("edge_set.add", 1, lambda x: x + 1)
+        self.inner.add(edge)
+
+    def __or__(self, other: Self):
+        benchmark.register_or_update_s("edge_set.or", 1, lambda x: x + 1)
+        return EdgeSet(self.inner | other.inner)
+
+    def __ror__(self, other: Self):
+        benchmark.register_or_update_s("edge_set.ror", 1, lambda x: x + 1)
+        return EdgeSet(other.inner | self.inner)
+
+    def __contains__(self, edge: Edge) -> bool:
+        benchmark.register_or_update_s("edge_set.contains", 1, lambda x: x + 1)
+        return edge in self.inner
+
+    def __iter__(self):
+        benchmark.register_or_update_s("edge_set.iter", 1, lambda x: x + 1)
+
+        # Create a generator that tracks each item access
+        for edge in self.inner:
+            benchmark.register_or_update_s("edge_set.next", 1, lambda x: x + 1)
+            yield edge
+
+
+@dataclass
+class EdgeDict:
+    inner: dict[Vertex, EdgeSet] = field(default_factory=dict)
+
+    def __getitem__(self, vertex: Vertex) -> EdgeSet:
+        benchmark.register_or_update_s("edge_dict.get", 1, lambda x: x + 1)
+        return self.inner.get(vertex, EdgeSet(set()))
+
+    def __setitem__(self, vertex: Vertex, edges: EdgeSet):
+        benchmark.register_or_update_s("edge_dict.set", 1, lambda x: x + 1)
+        self.inner[vertex] = edges
+
+    def __contains__(self, vertex: Vertex) -> bool:
+        benchmark.register_or_update_s("edge_dict.contains", 1, lambda x: x + 1)
+        return vertex in self.inner
+
+    def values(self) -> list[EdgeSet]:
+        benchmark.register_or_update_s("edge_dict.values", 1, lambda x: x + 1)
+        return list(self.inner.values())
+
+    def all(self) -> EdgeSet:
+        benchmark.register_or_update_s("edge_dict.all", 1, lambda x: x + 1)
+        return EdgeSet(
+            set(edge for edges in self.inner.values() for edge in edges.inner)
+        )
+
+
+@dataclass
 class Graph:
     V: list[Vertex]
     E: list[tuple[Vertex, Vertex]]
     c: list[int]
 
     # Our state
-    outgoing: dict[Vertex, set[Edge]] = field(default_factory=dict)
-    incoming: dict[Vertex, set[Edge]] = field(default_factory=dict)
-    incident: dict[Vertex, set[Edge]] = field(default_factory=dict)
+    outgoing: EdgeDict = field(default_factory=EdgeDict)
+    incoming: EdgeDict = field(default_factory=EdgeDict)
+    incident: EdgeDict = field(default_factory=EdgeDict)
 
     def __post_init__(self):
         for u, v in self.E:
@@ -71,31 +129,42 @@ class Graph:
         """
         return sum(edge.c for edge in self.incident[v] if edge.forward)
 
-    def all_edges(self) -> set[Edge]:
+    def all_edges(self) -> EdgeSet:
         """
         Returns all edges in the graph.
         """
-        return set(edge for edges in self.incident.values() for edge in edges)
+        return self.outgoing.all() | self.incoming.all()
+
+    def _all_edges(self) -> set[Edge]:
+        """
+        Returns all edges in the graph without benchmarking
+        """
+        return set(
+            edge for edges in self.incident.inner.values() for edge in edges.inner
+        )
 
 
 def make_outgoing_incoming(
     G: Graph, c: list[int]
-) -> tuple[dict[Vertex, set[Edge]], dict[Vertex, set[Edge]], dict[Vertex, set[Edge]]]:
-    outgoing: dict[Vertex, set[Edge]] = {u: set() for u in G.V}
-    incoming: dict[Vertex, set[Edge]] = {u: set() for u in G.V}
+) -> tuple[EdgeDict, EdgeDict, EdgeDict]:
+    # This function is a little messy, but it's to ensure we don't fill benchmarks
+    outgoing = EdgeDict({u: EdgeSet() for u in G.V})
+    incoming = EdgeDict({u: EdgeSet() for u in G.V})
 
     for i, ((u, v), cap) in enumerate(zip(G.E, c)):
         e = Edge(id=i + 1, u=u, v=v, c=cap, forward=True)
         e_rev = e.reversed()
 
-        outgoing[u].add(e)
-        outgoing[v].add(e_rev)
-        incoming[u].add(e_rev)
-        incoming[v].add(e)
+        outgoing.inner[u].inner.add(e)
+        outgoing.inner[v].inner.add(e_rev)
+        incoming.inner[u].inner.add(e_rev)
+        incoming.inner[v].inner.add(e)
 
-    incident = {u: outgoing[u] | incoming[u] for u in G.V}
+    incident = {
+        u: EdgeSet(outgoing.inner[u].inner | incoming.inner[u].inner) for u in G.V
+    }
 
-    return outgoing, incoming, incident
+    return outgoing, incoming, EdgeDict(incident)
 
 
 def topological_sort(G: Graph) -> list[Vertex]:
@@ -264,5 +333,15 @@ def parse_input(input: str, expected: int) -> tuple[Graph, list[int], list[int]]
 
     sources[s] = expected
     sinks[t] = expected
+
+    benchmark.register(
+        "instance",
+        {
+            "n": n,
+            "m": len(edges),
+            "s": s,
+            "t": t,
+        },
+    )
 
     return (Graph(list(range(len(sorted_vertices))), edges, capacities), sources, sinks)

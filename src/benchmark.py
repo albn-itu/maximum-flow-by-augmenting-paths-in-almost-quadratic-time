@@ -17,6 +17,7 @@ init_time = int(time.time())
 def start_benchmark(id: str):
     global cur_bench
     cur_bench = id
+    bench_scope = ""
     bench_info[cur_bench] = {"start": time.time_ns()}
 
 

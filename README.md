@@ -57,3 +57,14 @@ pytest -k "known_inputs"
 
 Both tools should be configured to respect the `pyproject.toml` file in the root of the repository. (They do so by default)
 
+
+## Benchmarks
+To run the benchmarks that are used in the thesis results we run these commands:
+
+```
+pytest --verbose -m "slow" -k "SameCap"
+pytest --verbose -m "slow and not with_n_weight" -k "RandomCDag"
+pytest --verbose -m "slow and not with_n_weight" -k "RandomCInputs"
+pytest --verbose -m "slow" -k "Fully"
+pytest --verbose -k "ExpanderHierarchy"
+```
