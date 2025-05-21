@@ -10,6 +10,7 @@ type BenchType = dict[str, dict[str, BenchValue]]
 
 bench_info: BenchType = {}
 cur_bench = None
+bench_scope = ""
 init_time = int(time.time())
 
 
@@ -53,11 +54,19 @@ def register(key: str, value: BenchValue):
     _set(key, value)
 
 
+def register_s(key: str, value: BenchValue):
+    register(f"{bench_scope}.{key}", value)
+
+
 def get_or_default[A: BenchValue](key: str, default: A) -> A | None:
     if cur_bench is None:
         return None
 
     return _get(key) or default
+
+
+def get_or_default_s[A: BenchValue](key: str, default: A) -> A | None:
+    return get_or_default(f"{bench_scope}.{key}", default)
 
 
 def register_or_update[A: BenchValue](key: str, default: A, updater: Callable[[A], A]):
@@ -69,6 +78,12 @@ def register_or_update[A: BenchValue](key: str, default: A, updater: Callable[[A
         _set(key, updater(val))
     else:
         _set(key, default)
+
+
+def register_or_update_s[A: BenchValue](
+    key: str, default: A, updater: Callable[[A], A]
+):
+    register_or_update(f"{bench_scope}.{key}", default, updater)
 
 
 def end_benchmark():
@@ -106,9 +121,15 @@ def write_benchmark(filename: str | None = None):
             tmp_file.unlink()
 
 
+def set_bench_scope(scope: str):
+    global bench_scope
+    bench_scope = scope
+
+
 def clear():
-    global bench_info, cur_bench
+    global bench_info, bench_scope, cur_bench
     bench_info = {}
+    bench_scope = ""
     cur_bench = None
 
 

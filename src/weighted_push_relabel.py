@@ -1,7 +1,6 @@
 from collections import defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from enum import unique
 import time
 
 from src import benchmark
@@ -38,6 +37,8 @@ class WeightedPushRelabel:
     unique_weights: dict[Vertex, list[int]] = field(default_factory=dict)
 
     def solve(self) -> tuple[int, dict[Edge, int]]:
+        benchmark.set_bench_scope("blik")
+
         self.f = defaultdict(int)
         self.l = {v: 0 for v in self.G.V}
         self.alive = set(self.G.V)
@@ -76,8 +77,8 @@ class WeightedPushRelabel:
                 default=9 * h + 1,
             )
 
-            benchmark.register_or_update(
-                "blik.highest_level", l[v], lambda x: max(x, l[v])
+            benchmark.register_or_update_s(
+                "highest_level", l[v], lambda x: max(x, l[v])
             )
 
             if l[v] > 9 * h:
@@ -96,11 +97,11 @@ class WeightedPushRelabel:
         write_custom_frame_into(self, vis, label="Initial")
 
         while True:
-            benchmark.register_or_update("blik.iterations", 1, lambda x: x + 1)
+            benchmark.register_or_update_s("iterations", 1, lambda x: x + 1)
 
             for v in AliveSaturatedVerticesWithNoAdmissibleOutEdges(self):
                 relabel(v)
-                benchmark.register_or_update("blik.relabels", 1, lambda x: x + 1)
+                benchmark.register_or_update_s("relabels", 1, lambda x: x + 1)
 
             graphviz_frame(self, "After relabel")
             write_custom_frame_into(self, vis, label="After relabel")
@@ -122,17 +123,15 @@ class WeightedPushRelabel:
                     min(c_f(e) for e in P),
                 )
 
-                benchmark.register_or_update(
-                    "blik.max_edge_updates", len(P), lambda x: max(x, len(P or []))
+                benchmark.register_or_update_s(
+                    "max_edge_updates", len(P), lambda x: max(x, len(P or []))
                 )
-                benchmark.register_or_update(
-                    "blik.min_edge_updates", len(P), lambda x: min(x, len(P or []))
+                benchmark.register_or_update_s(
+                    "min_edge_updates", len(P), lambda x: min(x, len(P or []))
                 )
 
                 for e in P:
-                    benchmark.register_or_update(
-                        "blik.edge_updates", 1, lambda x: x + 1
-                    )
+                    benchmark.register_or_update_s("edge_updates", 1, lambda x: x + 1)
 
                     if e.forward:
                         f[e] += c_augment
@@ -145,25 +144,23 @@ class WeightedPushRelabel:
                         self.mark_inadmissible(e)
 
                 sum_w = sum(w[e] for e in P)
-                benchmark.register_or_update(
-                    "blik.average_w_length",
+                benchmark.register_or_update_s(
+                    "average_w_length",
                     sum_w / c_augment,
                     lambda x: x + (sum_w / c_augment),
                 )
 
                 def transfer_bench_key(from_key: str, to_key: str):
-                    benchmark.register_or_update(
+                    benchmark.register_or_update_s(
                         to_key,
-                        benchmark.get_or_default(from_key, 0) or 0,
-                        lambda x: benchmark.get_or_default(to_key, 0) or 0,
+                        benchmark.get_or_default_s(from_key, 0) or 0,
+                        lambda x: benchmark.get_or_default_s(to_key, 0) or 0,
                     )
 
-                transfer_bench_key("blik.relabels", "blik.before_kill.relabels")
+                transfer_bench_key("relabels", "before_kill.relabels")
+                transfer_bench_key("marked_admissible", "before_kill.marked_admissible")
                 transfer_bench_key(
-                    "blik.marked_admissible", "blik.before_kill.marked_admissible"
-                )
-                transfer_bench_key(
-                    "blik.marked_inadmissible", "blik.before_kill.marked_inadmissible"
+                    "marked_inadmissible", "before_kill.marked_inadmissible"
                 )
 
                 graphviz_frame(self, "After pushing")
@@ -174,25 +171,7 @@ class WeightedPushRelabel:
                 export_custom_visualisation(vis)
 
                 result = self.amount_of_routed_flow(f)
-                benchmark.register("blik.flow", result)
-                updates = benchmark.get_or_default("blik.edge_updates", 0)
-                w_length = benchmark.get_or_default("blik.average_w_length", 0)
-                iters = benchmark.get_or_default("blik.iterations", 1)
-                if iters is not None and updates is not None and w_length is not None:
-                    benchmark.register("blik.avg_updates", updates / iters)
-                    benchmark.register("blik.average_w_length", w_length / iters)
-
-                marked_inadmissible = benchmark.get_or_default(
-                    "blik.state_change.marked_inadmissible", 0
-                )
-                marked_admissible = benchmark.get_or_default(
-                    "blik.state_change.marked_admissible", 0
-                )
-                if marked_inadmissible is not None and marked_admissible is not None:
-                    benchmark.register(
-                        "blik.state_change.state_changes",
-                        marked_inadmissible + marked_admissible,
-                    )
+                finish_benchmark(result)
 
                 return result, f
 
@@ -204,37 +183,35 @@ class WeightedPushRelabel:
             return f_e
 
     def mark_admissible(self, e: Edge):
-        benchmark.register_or_update("blik.marked_admissible", 1, lambda x: x + 1)
+        benchmark.register_or_update_s("marked_admissible", 1, lambda x: x + 1)
         if e not in self.admissible_outgoing[e.start()]:
-            benchmark.register_or_update(
-                "blik.state_change.marked_admissible", 1, lambda x: x + 1
+            benchmark.register_or_update_s(
+                "state_change.marked_admissible", 1, lambda x: x + 1
             )
         else:
-            benchmark.register_or_update(
-                "blik.state_change.already_marked_admissible", 1, lambda x: x + 1
+            benchmark.register_or_update_s(
+                "state_change.already_marked_admissible", 1, lambda x: x + 1
             )
 
         if (e.start(), e.end()) in self.dag_edges:
-            benchmark.register_or_update(
-                "blik.dag_marked_admissible", 1, lambda x: x + 1
-            )
+            benchmark.register_or_update_s("dag_marked_admissible", 1, lambda x: x + 1)
 
         self.admissible_outgoing[e.start()].add(e)
         self.alive_vertices_with_no_admissible_out_edges.discard(e.start())
 
     def mark_inadmissible(self, e: Edge):
-        benchmark.register_or_update("blik.marked_inadmissible", 1, lambda x: x + 1)
+        benchmark.register_or_update_s("marked_inadmissible", 1, lambda x: x + 1)
         if e in self.admissible_outgoing[e.start()]:
-            benchmark.register_or_update(
-                "blik.state_change.marked_inadmissible", 1, lambda x: x + 1
+            benchmark.register_or_update_s(
+                "state_change.marked_inadmissible", 1, lambda x: x + 1
             )
         else:
-            benchmark.register_or_update(
-                "blik.state_change.already_marked_inadmissible", 1, lambda x: x + 1
+            benchmark.register_or_update_s(
+                "state_change.already_marked_inadmissible", 1, lambda x: x + 1
             )
         if (e.start(), e.end()) in self.dag_edges:
-            benchmark.register_or_update(
-                "blik.dag_marked_inadmissible", 1, lambda x: x + 1
+            benchmark.register_or_update_s(
+                "dag_marked_inadmissible", 1, lambda x: x + 1
             )
 
         self.admissible_outgoing[e.start()].discard(e)
@@ -242,10 +219,10 @@ class WeightedPushRelabel:
             self.alive_vertices_with_no_admissible_out_edges.add(e.start())
 
     def mark_dead(self, v: Vertex):
-        benchmark.register_or_update("blik.marked_dead", 1, lambda x: x + 1)
+        benchmark.register_or_update_s("marked_dead", 1, lambda x: x + 1)
         if v not in self.alive:
-            benchmark.register_or_update(
-                "blik.marked_dead_alread_dead", 1, lambda x: x + 1
+            benchmark.register_or_update_s(
+                "marked_dead_alread_dead", 1, lambda x: x + 1
             )
 
         self.alive.remove(v)
@@ -364,7 +341,7 @@ def weighted_push_relabel_dict(
     res = instance.solve()
 
     end = time.time_ns()
-    benchmark.register(f"blik.duration_s", (end - start) / 1e9)
+    benchmark.register_s(f"duration_s", (end - start) / 1e9)
 
     return res
 
@@ -400,3 +377,24 @@ if __name__ == "__main__":
     print(f"Result: {mf} total flow")
     for e, f in res.items():
         print(f"  {f} flow via {e}")
+
+
+def finish_benchmark(flow: int):
+    benchmark.register_s("flow", flow)
+
+    updates = benchmark.get_or_default_s("edge_updates", 0)
+    w_length = benchmark.get_or_default_s("average_w_length", 0)
+    iters = benchmark.get_or_default_s("iterations", 1)
+    if iters is not None and updates is not None and w_length is not None:
+        benchmark.register_s("avg_updates", updates / iters)
+        benchmark.register_s("average_w_length", w_length / iters)
+
+    marked_inadmissible = benchmark.get_or_default_s(
+        "state_change.marked_inadmissible", 0
+    )
+    marked_admissible = benchmark.get_or_default_s("state_change.marked_admissible", 0)
+    if marked_inadmissible is not None and marked_admissible is not None:
+        benchmark.register_s(
+            "state_change.state_changes",
+            marked_inadmissible + marked_admissible,
+        )

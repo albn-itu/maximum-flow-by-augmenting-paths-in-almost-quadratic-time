@@ -1,7 +1,9 @@
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
+
 from src.flows.utils import finish_benchmark, benchmark_iteration
 from src.utils import Edge, Graph, Vertex
+from src import benchmark
 
 INF = 1000000000
 
@@ -54,6 +56,8 @@ class MaxFlow:
         return 0, None
 
     def max_flow(self, s: int, t: int) -> int:
+        benchmark.set_bench_scope("edmond")
+
         self.s = s
         self.t = t
 
@@ -82,8 +86,8 @@ class MaxFlow:
                     self.flow[edge] = self.flow[edge] - new_flow
 
                 edge_updates += 2
-            benchmark_iteration("edmond", edge_updates)
+            benchmark_iteration(edge_updates)
 
-        finish_benchmark("edmond", flow)
+        finish_benchmark(flow)
 
         return flow

@@ -58,7 +58,6 @@ class PushRelabel:
             self.is_active[v] = True
 
     def relabel(self, u: int) -> None:
-        """Relabel vertex u by increasing its height."""
         benchmark.register_or_update("push_relabel.relabels", 1, lambda x: x + 1)
 
         d = INF
@@ -70,8 +69,8 @@ class PushRelabel:
             new_height = d + 1
             self.height[u] = new_height
 
-            benchmark.register_or_update(
-                "push_relabel.highest_level", new_height, lambda x: max(x, new_height)
+            benchmark.register_or_update_s(
+                "highest_level", new_height, lambda x: max(x, new_height)
             )
 
     def discharge(self, u: int):
@@ -89,6 +88,8 @@ class PushRelabel:
                 self.relabel(u)
 
     def max_flow(self, s: int, t: int) -> int:
+        benchmark.set_bench_scope("push_relabel")
+
         # == Init ==
         self.s = s
         self.t = t
@@ -120,10 +121,10 @@ class PushRelabel:
 
             self.discharge(u)
 
-            benchmark_iteration("push_relabel", self.edge_updates)
+            benchmark_iteration(self.edge_updates)
             self.edge_updates = 0
 
         max_flow = self.excess[t]
-        finish_benchmark("push_relabel", max_flow)
+        finish_benchmark(max_flow)
 
         return max_flow

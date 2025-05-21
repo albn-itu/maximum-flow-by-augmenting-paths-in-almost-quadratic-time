@@ -1,6 +1,8 @@
 from collections import deque, defaultdict
 from dataclasses import dataclass, field
 
+from src import benchmark
+
 from src.flows.utils import finish_benchmark, benchmark_iteration
 from src.utils import Edge, Vertex, Graph
 
@@ -54,6 +56,8 @@ class CapacityScaling:
         return 0, None
 
     def max_flow(self, s: Vertex, t: Vertex) -> int:
+        benchmark.set_bench_scope("capacity")
+
         self.s = s
         self.t = t
 
@@ -88,9 +92,9 @@ class CapacityScaling:
                         self.flow[edge] = self.flow[edge] - new_flow
 
                     edge_updates += 2
-                benchmark_iteration("capacity", edge_updates)
+                benchmark_iteration(edge_updates)
             delta //= 2
 
-        finish_benchmark("capacity", flow)
+        finish_benchmark(flow)
 
         return flow
