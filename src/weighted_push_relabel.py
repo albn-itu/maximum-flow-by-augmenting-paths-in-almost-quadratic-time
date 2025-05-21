@@ -1,6 +1,7 @@
 from collections import defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from enum import unique
 import time
 
 from src import benchmark
@@ -33,6 +34,9 @@ class WeightedPushRelabel:
         default_factory=set
     )
 
+    # Extra state
+    unique_weights: dict[Vertex, list[int]] = field(default_factory=dict)
+
     def solve(self) -> tuple[int, dict[Edge, int]]:
         self.f = defaultdict(int)
         self.l = {v: 0 for v in self.G.V}
@@ -57,11 +61,18 @@ class WeightedPushRelabel:
         h = self.h
         f, l, c_f = self.f, self.l, self.c_f
 
+        self.unique_weights = {
+            v: sorted(set(w[e] for e in self.G.incident[v])) for v in self.G.V
+        }
+
         def relabel(v: Vertex):
             edges = self.G.incident[v]
 
             l[v] = min(
-                (next_multiple_of(n=l[v], multiple_of=w[e]) for e in edges),
+                (
+                    next_multiple_of(n=l[v], multiple_of=weight)
+                    for weight in self.unique_weights[v]
+                ),
                 default=9 * h + 1,
             )
 
@@ -379,6 +390,7 @@ class AliveSaturatedVerticesWithNoAdmissibleOutEdges:
 if __name__ == "__main__":
     mf, res = weighted_push_relabel(
         Graph(V=[0, 1, 2], E=[(0, 1), (1, 2)], c=[1, 1]),
+        c=[1, 1],
         sources=[1, 0, 0],
         sinks=[0, 0, 1],
         w=lambda e: 1,
