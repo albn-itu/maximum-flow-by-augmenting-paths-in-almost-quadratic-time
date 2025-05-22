@@ -27,7 +27,8 @@ class Base:
     @pytest.mark.weighted_push_relabel
     @bench
     def test_weighted_push_relabel(self, input: str, expected: int):
-        run_test(input, expected, weighted_push_relabel)
+        n = int(input.split()[0])
+        run_test(input, expected, weighted_push_relabel, h=2 * (n / 9))
 
     @pytest.mark.weighted_push_relabel
     @pytest.mark.with_n_weight
