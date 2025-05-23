@@ -1,18 +1,44 @@
 from collections import defaultdict
 import pathlib
-import sys
 import json
-from typing import Any, cast
+import sys
+from typing import cast
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import numpy as np
-from preprocess import (
+from .preprocess import (
     BenchmarkData,
+    BenchmarkResult,
     ProcessedKey,
+    ProcessedRun,
     ProcessedRunList,
     preprocess,
 )
 
+FUNCTIONS = {
+    "test_weighted_push_relabel": {"name": "No weights", "color": "tab:blue"},
+    "test_weighted_push_relabel_with_flow_weight": {
+        "name": "Maximum flow weights",
+        "color": "tab:green",
+    },
+    "test_weighted_push_relabel_with_expander_hierarchy_weights": {
+        "name": "Expander hierarchy weights",
+        "color": "tab:orange",
+    },
+    "test_weighted_push_relabel_with_topsort": {
+        "name": "Topological order weights",
+        "color": "tab:red",
+    },
+    "test_weighted_push_relabel_with_n_weight": {
+        "name": "Weight $n$",
+        "color": "tab:gray",
+    },
+    "test_weighted_push_relabel_with_2_weight": {
+        "name": "Weight $2$",
+        "color": "tab:purple",
+    },
+    "test_correct_flow_algorithms": {"name": "Correct flow", "color": "black"},
+}
 
 type BenchmarkGroups = dict[str, dict[str, list[BenchmarkResult]]]
 
@@ -44,37 +70,41 @@ def group_by(data: ProcessedRunList, key: str) -> dict[ProcessedKey, ProcessedRu
     return grouped
 
 
-def average_by(data: ProcessedRunList, key: str) -> float:
+def get_key(run: ProcessedRun, key: str) -> float:
+    return cast(float, run[key])
+
+
+def get_normalized_key(
+    run: ProcessedRun, key: str, normalization_parameter: str | None
+) -> float:
+    if normalization_parameter is not None:
+        return get_key(run, key) / get_key(run, normalization_parameter)
+    return get_key(run, key)
+
+
+def average_by(
+    data: ProcessedRunList, key: str, normalization_parameter: str | None = None
+) -> float:
     total = 0.0
     count = 0
     for run in data:
-        total += cast(float, run[key])
+        total += get_normalized_key(run, key, normalization_parameter)
         count += 1
     return total / count if count > 0 else 0.0
+
+
+def pretty_metric_name(name: str) -> str:
+    if name == "state_change.state_changes":
+        return "Admissibility changes per edge"
+    if name == "edge_considerations":
+        return "Avg. edge considerations"
+    return name
 
 
 def no_correct_flow(data: ProcessedRunList) -> ProcessedRunList:
     return [
         run for run in data if run["function_name"] != "test_correct_flow_algorithms"
     ]
-
-
-def weight_function_to_color(function_name: str) -> str:
-    if function_name == "test_correct_flow_algorithms":
-        return "black"
-    if function_name == "test_weighted_push_relabel":
-        return "tab:blue"
-    if function_name == "test_weighted_push_relabel_with_flow_weight":
-        return "tab:green"
-    if function_name == "test_weighted_push_relabel_with_expander_hierarchy_weights":
-        return "tab:orange"
-    if function_name == "test_weighted_push_relabel_with_topsort":
-        return "tab:red"
-    if function_name == "test_weighted_push_relabel_with_n_weight":
-        return "tab:gray"
-    if function_name == "test_weighted_push_relabel_with_2_weight":
-        return "tab:purple"
-    raise ValueError(f"Unknown function name: {function_name}")
 
 
 def cmp_weight_functions(data: ProcessedRunList):
@@ -96,11 +126,6 @@ def cmp_weight_functions(data: ProcessedRunList):
         # ("edge_updates", "instance.m"),
         # ("highest_level", "instance.n"),
     ]
-
-    def pretty_metric_name(name: str) -> str:
-        if metric == "state_change.state_changes":
-            return "Admissibility changes per edge"
-        return name
 
     for metric, normalization_parameter in metrics:
         prefixed_metric = f"blik.{metric}"
@@ -131,9 +156,7 @@ def cmp_weight_functions(data: ProcessedRunList):
             x_axis: list[str] = []
             for id in by_param_id.keys():
                 thing = by_param_id[id][-1]
-                x_axis.append(
-                    f"n={thing['instance.n']}\nm={thing['instance.m']}"
-                )
+                x_axis.append(f"n={thing['instance.n']}\nm={thing['instance.m']}")
 
             x = np.arange(len(x_axis))
             width = 0.25
@@ -145,22 +168,14 @@ def cmp_weight_functions(data: ProcessedRunList):
             for function_name, measurement in functions.items():
                 offset = width * multiplier
 
-                real_name = function_name.replace("test_", "")
-                if real_name == "weighted_push_relabel":
-                    real_name = "No weights"
-                else:
-                    real_name = (
-                        real_name.replace("weighted_push_relabel_", "")
-                        .replace("_", " ")
-                        .title()
-                    )
+                real_name = FUNCTIONS[function_name]["name"]
 
-                rects = ax.bar(
+                _ = ax.bar(
                     x + offset,
                     measurement,
                     width,
                     label=real_name,
-                    color=weight_function_to_color(function_name),
+                    color=FUNCTIONS[function_name]["color"],
                 )
                 # ax.bar_label(rects, padding=3)
                 multiplier += 1
@@ -176,61 +191,68 @@ def cmp_weight_functions(data: ProcessedRunList):
 
 
 def plot_with_respect_to_graph_size(data: ProcessedRunList):
-    by_fn = dict()
+    by_cn = dict()
 
     min_n = 8
     min_m = 8
 
-    for fn, fn_runs in group_by(data, "function_name").items():
-        x_m_series = {}
-        for n, n_runs in sorted(
-            group_by(fn_runs, "instance.n").items(), key=lambda x: x[0], reverse=True
-        ):
-            if n < min_n:
-                continue
-
-            id = n
-            x_m_series[id] = {
-                "label": f"$n={int(n)}$",
-                "line": [],
-            }
-            for m, runs in sorted(
-                group_by(n_runs, "instance.m").items(), key=lambda x: x[0]
+    for class_name, class_runs in group_by(data, "class_name").items():
+        by_fn = dict()
+        for fn, fn_runs in group_by(class_runs, "function_name").items():
+            x_m_series = {}
+            for n, n_runs in sorted(
+                group_by(fn_runs, "instance.n").items(),
+                key=lambda x: x[0],
+                reverse=True,
             ):
-                val = int(
-                    average_by(runs, "blik.marked_admissible")
-                    + average_by(runs, "blik.marked_inadmissible")
-                )
-                x_m_series[id]["line"].append((m / n, val))
+                if n < min_n:
+                    continue
 
-        x_n_series = {}
-        for m, m_runs in sorted(
-            group_by(fn_runs, "instance.m").items(), key=lambda x: x[0], reverse=True
-        ):
-            if m < min_m:
-                continue
+                id = n
+                x_m_series[id] = {
+                    "label": f"$n={int(n)}$",
+                    "line": [],
+                }
+                for m, runs in sorted(
+                    group_by(n_runs, "instance.m").items(), key=lambda x: x[0]
+                ):
+                    val = int(
+                        average_by(runs, "blik.marked_admissible")
+                        + average_by(runs, "blik.marked_inadmissible")
+                    )
+                    x_m_series[id]["line"].append((m / n, val / m))
 
-            id = m
-            x_n_series[id] = {
-                "label": f"$m={int(m)}$",
-                "line": [],
-            }
-            for n, runs in sorted(
-                group_by(m_runs, "instance.n").items(), key=lambda x: x[0]
+            x_n_series = {}
+            for m, m_runs in sorted(
+                group_by(fn_runs, "instance.m").items(),
+                key=lambda x: x[0],
+                reverse=True,
             ):
-                val = int(
-                    average_by(runs, "blik.marked_admissible")
-                    + average_by(runs, "blik.marked_inadmissible")
-                )
-                x_n_series[id]["line"].append((n, val))
+                if m < min_m:
+                    continue
 
-        by_fn[fn] = {
-            "x=m": x_m_series,
-            "x=n": x_n_series,
-        }
+                id = m
+                x_n_series[id] = {
+                    "label": f"$m={int(m)}$",
+                    "line": [],
+                }
+                for n, runs in sorted(
+                    group_by(m_runs, "instance.n").items(), key=lambda x: x[0]
+                ):
+                    val = int(
+                        average_by(runs, "blik.marked_admissible")
+                        + average_by(runs, "blik.marked_inadmissible")
+                    )
+                    x_n_series[id]["line"].append((n, val / m))
 
-    def plot_series_data(fn: str, series: str):
-        plots = by_fn[fn]
+            by_fn[fn] = {
+                "x=m": x_m_series,
+                "x=n": x_n_series,
+            }
+        by_cn[class_name] = by_fn
+
+    def plot_series_data(cn: str, fn: str, series: str):
+        plots = by_cn[cn][fn]
         # print(json.dumps(series, indent=2))
 
         fig, ax = plt.subplots(layout="constrained")
@@ -271,32 +293,35 @@ def plot_with_respect_to_graph_size(data: ProcessedRunList):
 
         return fig, ax
 
-    for fn in by_fn:
-        name = fn.replace("test_", "").replace("_", " ").title()
+    for cn in by_cn:
+        for fn in by_cn[cn]:
+            name = FUNCTIONS[fn]["name"]
 
-        fig, ax = plot_series_data(fn, "x=m")
-        ax.set_xlabel(r"Edge scale factor ($m = x \cdot n$)")
-        ax.set_ylabel("Number of times edges change status")
-        ax.set_xscale("log", base=2)
-        ax.set_yscale("log", base=2)
-        ax.xaxis.set_major_formatter(mticker.StrMethodFormatter("{x:.0f}"))
-        ax.set_title(
-            f"Number of status changes for different graph sizes ({name})", loc="left"
-        )
-        ax.grid(True)
-        save_plot(f"graph_size_xm_{fn}")
+            fig, ax = plot_series_data(cn, fn, "x=m")
+            ax.set_xlabel(r"Edge scale factor ($m = x \cdot n$)")
+            ax.set_ylabel("Number of times edges change status")
+            ax.set_xscale("log", base=2)
+            ax.set_yscale("log", base=2)
+            ax.xaxis.set_major_formatter(mticker.StrMethodFormatter("{x:.0f}"))
+            ax.set_title(
+                f"Number of status changes for different graph sizes ({name}) ({cn})",
+                loc="left",
+            )
+            ax.grid(True)
+            save_plot(f"graph_size_xm_{cn}_{fn}")
 
-        fig, ax = plot_series_data(fn, "x=n")
-        ax.set_xlabel(r"$n$")
-        ax.set_ylabel("Number of times edges change status")
-        ax.set_xscale("log", base=2)
-        ax.set_yscale("log", base=2)
-        ax.xaxis.set_major_formatter(mticker.StrMethodFormatter("{x:.0f}"))
-        ax.set_title(
-            f"Number of status changes for different graph sizes ({name})", loc="left"
-        )
-        ax.grid(True)
-        save_plot(f"graph_size_xn_{fn}")
+            fig, ax = plot_series_data(cn, fn, "x=n")
+            ax.set_xlabel(r"$n$")
+            ax.set_ylabel("Number of times edges change status")
+            ax.set_xscale("log", base=2)
+            ax.set_yscale("log", base=2)
+            ax.xaxis.set_major_formatter(mticker.StrMethodFormatter("{x:.0f}"))
+            ax.set_title(
+                f"Number of status changes for different graph sizes ({name}) ({cn})",
+                loc="left",
+            )
+            ax.grid(True)
+            save_plot(f"graph_size_xn_{cn}_{fn}")
 
         # plt.show()
 
@@ -349,20 +374,13 @@ def cmp_weight_functions_avg(
         # ("before_kill.marked_inadmissible", "instance.m"),
         # ("state_change.marked_admissible", "instance.m"),
         # ("state_change.marked_inadmissible", "instance.m"),
-        # ("state_change.state_changes", None),
+        ("state_change.state_changes", None),
         # ("before_kill.relabels", "instance.n"),
         # ("relabels", "instance.n"),
         # ("iterations", "instance.n"),
         # ("edge_updates", "instance.m"),
         # ("highest_level", "instance.n"),
     ]
-
-    def pretty_metric_name(metric: str) -> str:
-        if metric == "state_change.state_changes":
-            return "Admissibility changes per edge"
-        if metric == "edge_considerations":
-            return "Avg. edge considerations"
-        return metric
 
     def ylabel(metric: str) -> str:
         if metric == "state_change.state_changes":
@@ -414,7 +432,7 @@ def cmp_weight_functions_avg(
             x_axis: list[str] = []
 
             for n, n_runs in group_by(class_runs, "instance.n").items():
-                if sizes[0] is int:
+                if type(sizes[0]) is int:
                     if n not in sizes:
                         continue
                     m = average_by(n_runs, "instance.m")
@@ -438,29 +456,14 @@ def cmp_weight_functions_avg(
             for function_name, measurement in functions.items():
                 offset = width * multiplier
 
-                real_name = function_name.replace("test_", "")
-                if real_name == "weighted_push_relabel":
-                    real_name = "Unit weights"
-                else:
-                    nn = real_name.replace("weighted_push_relabel_", "")
-                    if nn == "with_flow_weight":
-                        real_name = "Maximum flow weights"
-                    elif nn == "with_expander_hierarchy_weights":
-                        real_name = "Expander hierarchy weights"
-                    elif nn == "with_topsort":
-                        real_name = "Topological order weights"
-                    elif nn == "with_n_weight":
-                        real_name = "Weight $n$"
-                    else:
-                        real_name = nn
-                    print(nn.__repr__(), real_name)
+                real_name = FUNCTIONS[function_name]["name"]
 
-                rects = ax.bar(
+                _ = ax.bar(
                     x + offset,
                     measurement,
                     width,
                     label=real_name,
-                    color=weight_function_to_color(function_name),
+                    color=FUNCTIONS[function_name]["color"],
                 )
                 # ax.bar_label(rects, padding=3)
                 multiplier += 1
@@ -487,68 +490,59 @@ def load_data(file_path: str) -> BenchmarkData:
 
 
 if __name__ == "__main__":
-    # if len(sys.argv) < 2:
-    #     print("Usage: uv run plotter.py <path_to_bench_file>")
-    #     exit(1)
-    #
-    # bench_file = sys.argv[1]
-    # data = load_data(bench_file)
-    #
-    # preprocessed_data = preprocess(data)
-    # # plot_with_respect_to_graph_size(no_correct_flow(preprocessed_data))
+    if len(sys.argv) < 2:
+        print("Usage: uv run plotter.py <path_to_bench_file>")
+        exit(1)
+
+    bench_file = sys.argv[1]
+    data = load_data(bench_file)
+
+    preprocessed_data = preprocess(data)
+    plot_with_respect_to_graph_size(no_correct_flow(preprocessed_data))
     # cmp_weight_functions(preprocessed_data)
 
-    files = [
-        # (
-        #     "benches/varying-expanders-collected.json",
-        #     [
-        #         (90),
-        #         (210),
-        #         (306),
-        #         (420),
-        #     ],
-        # ),
-        (
-            "benches/varying-expanders-collected.json",
-            [
-                (90),
-                (210),
-                (306),
-                (420),
-            ],
-        ),
-        (
-            "benches/non-dag-runs-18-may-13_08.json",
-            [
-                (256, 256),
-                (256, 512),
-                (256, 1024),
-                (256, 2048),
-            ],
-        ),
-        (
-            "benches/dag-runs-18-may-21:15.json",
-            [
-                (256, 256),
-                (256, 512),
-                (256, 1024),
-                (256, 2048),
-            ],
-        ),
-        (
-            "benches/fully-connected-same-cap-18-may-20:56.json",
-            [
-                (8, 56),
-                (16, 240),
-                (32, 992),
-                (64, 4032),
-            ],
-        ),
-    ]
-
-    for file, sizes in files:
-        print(f"Processing {file}")
-        data = load_data(file)
-        preprocessed_data = preprocess(data)
-
-        cmp_weight_functions_avg(preprocessed_data, sizes)
+    # files = [
+    #     (
+    #         "benches/varying-expanders-collected-18-may-22:19.json",
+    #         [
+    #             (90),
+    #             (210),
+    #             (306),
+    #             (420),
+    #         ],
+    #     ),
+    #     (
+    #         "benches/non-dag-runs-18-may-21:16.json",
+    #         [
+    #             (256, 256),
+    #             (256, 512),
+    #             (256, 1024),
+    #             (256, 2048),
+    #         ],
+    #     ),
+    #     (
+    #         "benches/dag-runs-18-may-21:15.json",
+    #         [
+    #             (256, 256),
+    #             (256, 512),
+    #             (256, 1024),
+    #             (256, 2048),
+    #         ],
+    #     ),
+    #     (
+    #         "benches/fully-connected-same-cap-18-may-20:56.json",
+    #         [
+    #             (8, 56),
+    #             (16, 240),
+    #             (32, 992),
+    #             (64, 4032),
+    #         ],
+    #     ),
+    # ]
+    #
+    # for file, sizes in files:
+    #     print(f"Processing {file}")
+    #     data = load_data(file)
+    #     preprocessed_data = preprocess(data)
+    #
+    #     cmp_weight_functions_avg(preprocessed_data, sizes)
