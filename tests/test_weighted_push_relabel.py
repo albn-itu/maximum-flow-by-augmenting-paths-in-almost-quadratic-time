@@ -195,3 +195,24 @@ class TestRandomFullyConnectedSameCapInputs(Base):
 class TestRandomCInputs(Base):
     file_based = True
     params = read_random_dag_inputs("tests/data/random_graphs")
+
+
+@typing.final
+@pytest.mark.slow
+class TestRandom15Inputs(Base):
+    file_based = True
+    params = read_random_dag_inputs("tests/data/random_graphs_1.5")
+
+
+@typing.final
+@pytest.mark.slow
+class TestRandomDag15Inputs(TopSortable):
+    file_based = True
+    params = read_random_dag_inputs("tests/data/random_dags_1.5")
+
+
+@typing.final
+@pytest.mark.slow
+class TestRandomFullyConnectedSameCap15Inputs(Base):
+    file_based = True
+    params = read_random_dag_inputs("tests/data/fully_connected_same_cap_1.5")

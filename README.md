@@ -66,5 +66,13 @@ pytest --verbose -m "slow" -k "SameCap"
 pytest --verbose -m "slow and not with_n_weight" -k "RandomCDag"
 pytest --verbose -m "slow and not with_n_weight" -k "RandomCInputs"
 pytest --verbose -m "slow" -k "Fully"
-pytest --verbose -k "ExpanderHierarchy"
+pytest --verbose -k "Varying"
+
+pytest --verbose -m "slow and not with_n_weight" -k "Random15Inputs"
+pytest --verbose -m "slow and not with_n_weight" -k "RandomDag15Inputs"
+pytest --verbose -m "slow" -k "RandomFullyConnectedSameCap15Inputs"
+```
+
+```
+pytest --verbose -m "correct_flow or with_expander_hierarchy" -k "Varying"
 ```

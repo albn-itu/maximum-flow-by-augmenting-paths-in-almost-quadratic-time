@@ -1,7 +1,7 @@
 import networkx as nx
 from dataclasses import dataclass
 import random
-from .utils import Edge, Graph
+from src.utils import Edge, Graph
 
 
 @dataclass

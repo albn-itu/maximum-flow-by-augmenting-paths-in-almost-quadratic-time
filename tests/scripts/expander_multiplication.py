@@ -1,9 +1,9 @@
 import os
 
-from classic_push_relabel import PushRelabel
+from src.flows.classic_push_relabel import PushRelabel
 
 from src.utils import Graph
-from src.expander_hierarchy_generator import ExpanderHierarchy, from_json_file
+from .expander_hierarchy_generator import ExpanderHierarchy, from_json_file
 from networkx.algorithms import hierarchy
 
 

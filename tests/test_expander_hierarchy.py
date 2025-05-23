@@ -5,7 +5,7 @@ import typing
 import src.benchmark as benchmark
 
 from src.weighted_push_relabel import weighted_push_relabel
-from src.expander_hierarchy_generator import from_json_file
+from .scripts.expander_hierarchy_generator import from_json_file
 import pytest
 from src.utils import Edge, export_russian_graph, parse_input
 

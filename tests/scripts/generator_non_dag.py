@@ -10,7 +10,7 @@ def generate_random_graph_nm(n: int, m: int, seed: int | None = None) -> Graph:
     if n < 2 or m < 1:
         raise ValueError("n and m must be greater than 1 and 0 respectively")
     if m < n - 1:
-        raise ValueError("m must be greater than n - 1")
+        raise ValueError("m must be greater than or equal to n - 1")
 
     if seed is not None:
         random.seed(seed)
@@ -67,13 +67,6 @@ def generate_random_graph_nm(n: int, m: int, seed: int | None = None) -> Graph:
     return Graph(V=list(range(n)), E=edges, c=capacities)
 
 
-def doubling_range(start: int, end: int):
-    i = start
-    while i <= end:
-        yield i
-        i *= 2
-
-
 def generate_fully_connected_graph(seed: int, num_vertices: int):
     MIN_WEIGHT = 2
     MAX_WEIGHT = 2 * num_vertices
@@ -104,9 +97,8 @@ if __name__ == "__main__":
     seed = random.randrange(sys.maxsize)
     print("Seed:", seed)
 
-    # ns = [256]
-    # max_n = 64
-    ns = list(doubling_range(2, 64))
+    growth_rate = 1.1
+    ns = list(percentage_range(2, 277, growth_rate))
     max_n = max(ns)
     # ms = list(doubling_range(100, max_n**2))
     # if max_n**2 != max(ms):
@@ -140,7 +132,7 @@ if __name__ == "__main__":
             expected = PushRelabel(g).max_flow(s, t)
 
             filename = f"{graphs:04}_{n}_{len(g.E)}_{expected}.txt"
-            path = pathlib.Path("tests/data/fully_connected_same_cap")
+            path = pathlib.Path(f"tests/data/fully_connected_same_cap_{growth_rate}")
             path.mkdir(parents=True, exist_ok=True)
             with open(path / filename, "w") as f:
                 f.write(export_russian_graph(g, s, t))

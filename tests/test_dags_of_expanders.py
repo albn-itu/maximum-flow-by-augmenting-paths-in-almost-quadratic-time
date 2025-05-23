@@ -1,7 +1,7 @@
 import pytest
 from src.utils import export_russian_graph
 from src.weighted_push_relabel import weighted_push_relabel
-from src.expander_generator import ConstructedInstance
+from .scripts.expander_generator import ConstructedInstance
 from tests.utils import run_test
 
 

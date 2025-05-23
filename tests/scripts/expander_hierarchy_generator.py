@@ -4,10 +4,10 @@ import pathlib
 import random
 import sys
 
-from .flows.classic_push_relabel import PushRelabel
+from src.flows.classic_push_relabel import PushRelabel
 
 from .phi_expander_generator import generate_phi_expander, Graph as PhiGraph
-from .utils import (
+from src.utils import (
     Graph,
     Vertex,
     parse_input,
