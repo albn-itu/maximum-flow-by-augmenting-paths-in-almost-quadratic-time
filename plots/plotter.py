@@ -14,6 +14,8 @@ from .preprocess import (
     ProcessedRunList,
     preprocess,
 )
+import re
+import itertools
 
 FUNCTIONS = {
     "test_weighted_push_relabel": {"name": "No weights", "color": "tab:blue"},
@@ -59,7 +61,7 @@ def save_plot(name: str):
         (work_dir / "output" / format).mkdir()
 
     plt.savefig(
-        make_out_path(name, format), format=format, bbox_inches="tight", dpi=300
+        make_out_path(name, format), format=format, bbox_inches="tight", dpi=150
     )
 
 
@@ -194,7 +196,7 @@ def plot_with_respect_to_graph_size(data: ProcessedRunList):
     by_cn = dict()
 
     min_n = 8
-    min_m = 8
+    min_m, max_m = 100, 19000
 
     for class_name, class_runs in group_by(data, "class_name").items():
         by_fn = dict()
@@ -228,7 +230,7 @@ def plot_with_respect_to_graph_size(data: ProcessedRunList):
                 key=lambda x: x[0],
                 reverse=True,
             ):
-                if m < min_m:
+                if m < min_m or m > max_m:
                     continue
 
                 id = m
@@ -255,8 +257,23 @@ def plot_with_respect_to_graph_size(data: ProcessedRunList):
         plots = by_cn[cn][fn]
         # print(json.dumps(series, indent=2))
 
+        marker_styles = itertools.cycle([
+            "o",  # circle
+            "s",  # square
+            "D",  # diamond
+            "P",  # plus (filled)
+            "X",  # x (filled)
+            "*",  # star
+            "+",  # plus
+            "x",  # x
+            ".",  # pixel
+            "1",  # tri-down (kept for variation; remove if needed)
+            "|",  # vertical line
+            "_"   # horizontal line
+        ])
+
         fig, ax = plt.subplots(layout="constrained")
-        fig.set_size_inches((8, 5))
+        fig.set_size_inches((6, 5))
         for id, item in plots[series].items():
             xs, ys = zip(*item["line"])
 
@@ -273,57 +290,108 @@ def plot_with_respect_to_graph_size(data: ProcessedRunList):
             )  # or sum([ (yi - ybar)**2 for yi in y])
             r2 = ssreg / sstot
 
-            fit_eq = f"$R^2={r2:.3f}$: ${z[0]:.2f}x^2 + {z[1]:.2f}x + c$"
+            sign = "+" if z[1] >= 0 else ""
+            fit_eq = f"$R^2={r2:.3f}$: ${z[0]:.2f}x^2 {sign} {z[1]:.2f}x + c$"
 
             l = ax.plot(
                 xs,
                 ys,
-                label=item["label"] + f" ({fit_eq})",
-                marker="o",
+                label=item["label"],
+                marker=next(marker_styles),
                 linestyle="None",
             )
 
             fx = np.linspace(min(xs), max(xs), 100)
-            ax.plot(fx, p(fx), linestyle="--", alpha=0.5, color=l[0].get_color())
+            ax.plot(fx, p(fx), linestyle="--", alpha=0.5, color=l[0].get_color(), label=fit_eq)
 
         # Put a legend to the right of the current axis
-        box = ax.get_position()
-        ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
-        ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
+        # box = ax.get_position()
+        # ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+        # ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
+        # ax.legend()
 
         return fig, ax
 
+    def pretty_class_name(c: str) -> str:
+        if re.match(r"TestRandom(\d*)Inputs", c):
+            return "random graphs"
+        if re.match(r"TestRandomDag(\d*)Inputs", c):
+            return "random DAGs"
+        if re.match(r"TestRandomFullyConnectedSameCap(\d*)Inputs", c):
+            return "complete graphs"
+        if re.match(r"TestVaryingExpanderHierarchy(\d*)Inputs", c):
+            return "expander hierarchies"
+        return c
+
     for cn in by_cn:
+        continue
         for fn in by_cn[cn]:
-            name = FUNCTIONS[fn]["name"]
+            fn_name = FUNCTIONS[fn]["name"].lower()
+            cn_name = pretty_class_name(cn)
 
             fig, ax = plot_series_data(cn, fn, "x=m")
             ax.set_xlabel(r"Edge scale factor ($m = x \cdot n$)")
-            ax.set_ylabel("Number of times edges change status")
+            ax.set_ylabel(pretty_metric_name("edge_considerations"))
             ax.set_xscale("log", base=2)
             ax.set_yscale("log", base=2)
             ax.xaxis.set_major_formatter(mticker.StrMethodFormatter("{x:.0f}"))
-            ax.set_title(
-                f"Number of status changes for different graph sizes ({name}) ({cn})",
-                loc="left",
-            )
+            title = f"{pretty_metric_name("edge_considerations")} with {fn_name} ({cn_name})"
+            ax.set_title( title, loc="left")
             ax.grid(True)
             save_plot(f"graph_size_xm_{cn}_{fn}")
 
             fig, ax = plot_series_data(cn, fn, "x=n")
             ax.set_xlabel(r"$n$")
-            ax.set_ylabel("Number of times edges change status")
+            ax.set_ylabel(pretty_metric_name("edge_considerations"))
             ax.set_xscale("log", base=2)
             ax.set_yscale("log", base=2)
             ax.xaxis.set_major_formatter(mticker.StrMethodFormatter("{x:.0f}"))
-            ax.set_title(
-                f"Number of status changes for different graph sizes ({name}) ({cn})",
-                loc="left",
-            )
+            title = f"{pretty_metric_name("edge_considerations")} with {fn_name} ({cn_name})"
+            ax.set_title( title, loc="left")
             ax.grid(True)
             save_plot(f"graph_size_xn_{cn}_{fn}")
 
         # plt.show()
+
+    for class_name, class_runs in group_by(data, "class_name").items():
+        if not class_name.startswith("TestVaryingExpanderHierarchy"):
+            continue
+
+        for fn, fn_runs in group_by(class_runs, "function_name").items():
+            if "expander" not in fn:
+                continue
+
+            fn_name = FUNCTIONS[fn]["name"].lower()
+            cn_name = pretty_class_name(class_name)
+
+            points = []
+            for n, n_runs in sorted(
+                group_by(fn_runs, "instance.n").items(),
+                key=lambda x: x[0],
+            ):
+                val = average_by(n_runs, "blik.marked_admissible") + average_by(n_runs, "blik.marked_inadmissible")
+                points.append((n, val))
+
+            series = {
+                "label": "With expander hierarchy weight function",
+                "line": points,
+            }
+            obj = { "dummy": { "dummy": series } }
+
+            by_cn["dummy"] = {}
+            by_cn["dummy"]["expand_dummy"] = obj
+
+            fig, ax = plot_series_data("dummy", "expand_dummy", "dummy")
+            ax.set_xlabel(r"$n$")
+            ax.set_ylabel("Number of edge considerations")
+            # ax.set_xscale("log", base=2)
+            # ax.set_yscale("log", base=2)
+            ax.xaxis.set_major_formatter(mticker.StrMethodFormatter("{x:.0f}"))
+            title = f"Total number of edge considerations with {fn_name}"
+            ax.set_title(title, loc="left")
+            ax.grid(True)
+            ax.legend()
+            save_plot(f"graph_size_xn_expanduh")
 
     # fig, ax = plt.subplots(layout="constrained")
     # for m in ms:
